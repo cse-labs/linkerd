@@ -1,4 +1,4 @@
-.PHONY: help all create delete deploy check clean app webv test load-test reset-prometheus reset-grafana jumpbox
+.PHONY: help all create delete deploy check clean test load-test jumpbox
 
 help :
 	@echo "Usage:"
@@ -10,10 +10,6 @@ help :
 	@echo "   make test             - run a WebValidate test"
 	@echo "   make load-test        - run a 60 second WebValidate test"
 	@echo "   make clean            - delete the apps from the cluster"
-	@echo "   make app              - build and deploy a local app docker image"
-	@echo "   make webv             - build and deploy a local WebV docker image"
-	@echo "   make reset-prometheus - reset the Prometheus volume (existing data is deleted)"
-	@echo "   make reset-grafana    - reset the Grafana volume (existing data is deleted)"
 	@echo "   make jumpbox          - deploy a 'jumpbox' pod"
 
 all : delete create deploy jumpbox
@@ -83,45 +79,6 @@ clean :
 	# show running pods
 	@kubectl get po -A
 
-app :
-	# build the local image and load into kind
-	docker build ../ngsa-app -t ngsa-app:local
-
-	kind load docker-image ngsa-app:local
-
-	# delete WebV
-	-kubectl delete -f deploy/webv --ignore-not-found=true
-
-	# delete/deploy the app
-	-kubectl delete -f deploy/ngsa-memory --ignore-not-found=true
-	kubectl apply -f deploy/ngsa-local
-
-	# deploy WebValidate after app starts
-	@kubectl wait pod ngsa-memory --for condition=ready --timeout=30s
-	@sleep 5
-	kubectl apply -f deploy/webv
-	@kubectl wait pod webv --for condition=ready --timeout=30s
-
-	@kubectl get po
-
-	# display the app version
-	-http localhost:30080/version
-
-webv :
-	# build the local image and load into kind
-	docker build ../webvalidate -t webv:local
-	
-	kind load docker-image webv:local
-
-	# delete / create WebValidate
-	-kubectl delete -f deploy/webv --ignore-not-found=true
-	kubectl apply -f deploy/webv-local
-	kubectl wait pod webv --for condition=ready --timeout=30s
-	@kubectl get po
-
-	# display the current version
-	-http localhost:30088/version
-
 test :
 	# use WebValidate to run a test
 	cd webv && webv --verbose --summary tsv --server http://localhost:30080 --files baseline.json
@@ -131,21 +88,6 @@ test :
 load-test :
 	# use WebValidate to run a 60 second test
 	cd webv && webv --verbose --server http://localhost:30080 --files benchmark.json --run-loop --sleep 100 --duration 60
-
-reset-prometheus :
-	# remove and create the /prometheus volume
-	@kubectl delete -f deploy/prometheus/3-prometheus-deployment.yaml --ignore-not-found=true
-	@sudo rm -rf /prometheus/wal
-	@sudo chown -R 65534:65534 /prometheus
-	# redeploy Prometheus - kubectl apply -f deploy/prometheus
-
-reset-grafana :
-	# remove and copy the data to /grafana volume
-	@kubectl delete -f deploy/grafana/deployment.yaml --ignore-not-found=true
-	@sudo rm -f /grafana/grafana.db
-	@sudo cp -R deploy/grafanadata/grafana.db /grafana
-	@sudo chown -R 472:472 /grafana
-	# redeploy Grafana - kubectl apply -f deploy/grafana
 
 jumpbox :
 	@# start a jumpbox pod
