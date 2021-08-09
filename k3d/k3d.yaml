@@ -35,6 +35,8 @@ options:
   k3s:
     extraServerArgs:
       - --tls-san=127.0.0.1
+      - --no-deploy
+      - traefik
     extraAgentArgs: []
   kubeconfig:
     updateDefaultKubeconfig: true

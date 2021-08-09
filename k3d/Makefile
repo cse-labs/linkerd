@@ -18,6 +18,8 @@ help :
 
 all : delete create deploy jumpbox check
 
+rall: delete create deploy app jumpbox check
+
 delete :
 	# delete the cluster (if exists)
 	@# this will fail harmlessly if the cluster does not exist
@@ -28,16 +30,16 @@ create :
 	@# this will fail harmlessly if the cluster exists
 	@# default cluster name is k3d
 
-	@k3d cluster create --config k3d.yaml
+	@k3d cluster create --registry-create --config k3d.yaml
 
 	# wait for cluster to be ready
 	@kubectl wait node --for condition=ready --all --timeout=60s
-	@kubectl wait job helm-install-traefik -n kube-system --for condition=complete --timeout=60s
+	curl -sfL https://get.rio.io | sh -
+	rio install
 	@kubectl wait pod -n kube-system --for condition=ready -l app=local-path-provisioner  --timeout=60s
 	@kubectl wait pod -n kube-system --for condition=ready -l k8s-app=metrics-server  --timeout=60s
 	@kubectl wait pod -n kube-system --for condition=ready -l k8s-app=kube-dns  --timeout=60s
-	@kubectl wait pod -n kube-system --for condition=ready -l app=svclb-traefik  --timeout=60s
-	@kubectl wait pod -n kube-system --for condition=ready -l app.kubernetes.io/name=traefik  --timeout=60s
+	
 
 deploy :
 	# deploy the app
@@ -90,29 +92,9 @@ clean :
 
 app :
 	# build the local image and load into k3d
-	docker build ../ngsa-app -t ngsa-app:local
-
-	k3d image import ngsa-app:local
-
-	# delete WebV
-	-kubectl delete -f ../deploy/webv --ignore-not-found=true
-
-	# display the app version
-	-http localhost:30080/version
-
-	# delete/deploy the app
-	-kubectl delete -f ../deploy/ngsa-memory --ignore-not-found=true
-	kubectl apply -f ../deploy/ngsa-local
-
-	# deploy WebValidate after app starts
-	@kubectl wait pod ngsa-memory --for condition=ready --timeout=30s
-	kubectl apply -f ../deploy/webv
-	@kubectl wait pod webv --for condition=ready --timeout=30s
-
-	@kubectl get po
-
-	# display the app version
-	@http localhost:30080/version
+	docker build ../app -t pickle
+	k3d image import pickle
+	rio run -p 80:8000 pickle
 
 webv :
 	# build the local image and load into k3d
