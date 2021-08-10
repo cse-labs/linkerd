@@ -18,6 +18,7 @@ RUN cargo install --target x86_64-unknown-linux-musl --path .
 
 # 1c: Build the exe using the actual source code
 COPY src ./src
+RUN ["touch", "src/main.rs"]
 RUN cargo install --target x86_64-unknown-linux-musl --path .
 
 # 2: Copy the exe to an empty Docker image
