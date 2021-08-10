@@ -29,6 +29,13 @@ spec:
     - local
     - --region
     - local
+    resources:
+      requests:
+        memory: "500Mi"
+        cpu: "1"
+      limits:
+        memory: "1Gi"
+        cpu: "1"
 
 ---
 
