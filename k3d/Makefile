@@ -23,14 +23,14 @@ rall: delete create deploy app jumpbox check
 delete :
 	# delete the cluster (if exists)
 	@# this will fail harmlessly if the cluster does not exist
-	@-k3d cluster delete
+	@k3d cluster delete
 
 create :
 	@# create the cluster and wait for ready
 	@# this will fail harmlessly if the cluster exists
-	@# default cluster name is k3d
+	@# default cluster name is k3d-k3s-default
 
-	@k3d cluster create --config k3d.yaml
+	k3d cluster create --registry-use k3d-registry.localhost:5000 --config k3d.yaml
 
 	# wait for cluster to be ready
 	@kubectl wait node --for condition=ready --all --timeout=60s
@@ -86,8 +86,9 @@ clean :
 
 app :
 	# build the local image and load into k3d
-	@#cd ../app && rio build -t pickle:local
-	@#rio run --name pickle -p 80:8000 localhost:5442/default/pickle:local
+	@cd ../app && docker build . -t k3d-registry.localhost:5000/pickle:local
+	@docker push k3d-registry.localhost:5000/pickle:local
+	@kubectl apply -f ../deploy/pickle
 
 webv :
 	# build the local image and load into k3d
