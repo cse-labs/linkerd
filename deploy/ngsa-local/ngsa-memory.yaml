@@ -8,8 +8,8 @@ metadata:
 spec:
   containers:
   - name: ds
-    imagePullPolicy: Never
-    image: ngsa-app:local
+    imagePullPolicy: Always
+    image: k3d-registry.localhost:5000/ngsa:local
     args:
       - --in-memory
       - --prometheus
