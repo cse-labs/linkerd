@@ -38,6 +38,7 @@
 		"davidanson.vscode-markdownlint",
 		"gruntfuggly.todo-tree",
 		"mutantdino.resourcemonitor",
+		"serayuzgur.crates",
 		"humao.rest-client"
 	],
 
