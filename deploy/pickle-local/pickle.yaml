@@ -12,6 +12,13 @@ spec:
     image: k3d-registry.localhost:5000/pickle:local
     ports:
     - containerPort: 8000
+    resources:
+      requests:
+        memory: "100Mi"
+        cpu: "500m"
+      limits:
+        memory: "200Mi"
+        cpu: "1"
 
 ---
 
