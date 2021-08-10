@@ -10,6 +10,21 @@ sudo chown -R 472:472 /grafana
 docker network create kind
 
 # create local registry
-docker run -d --net kind --restart=always -p "127.0.0.1:5000:5000" --name kind-registry registry:2
+#docker run -d --net kind --restart=always -p "127.0.0.1:5000:5000" --name registry registry:2
+k3d registry create registry.localhost --port 5000
+docker network connect kind k3d-registry.localhost
+
+# push ngsa-app to local repo
+docker pull ghcr.io/retaildevcrews/ngsa-app:beta
+docker tag ghcr.io/retaildevcrews/ngsa-app:beta k3d-registry.localhost:5000/ngsa:local
+docker push k3d-registry.localhost:5000/ngsa:local
+docker rmi ghcr.io/retaildevcrews/ngsa-app:beta
+
+# download rio
+#curl -sfL https://get.rio.io | sh -
+
+# install rust musl target
+sudo apt-get install -y --no-install-recommends musl-tools
+rustup target add x86_64-unknown-linux-musl
 
 echo "on-create complete" >> ~/status
