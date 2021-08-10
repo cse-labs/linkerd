@@ -16,14 +16,14 @@ help :
 	@echo "   make reset-grafana    - reset the Grafana volume (existing data is deleted)"
 	@echo "   make jumpbox          - deploy a 'jumpbox' pod"
 
-all : delete create app
+all : delete create app check
 
 app :
 	# build the local image and load into k3d
 	@cd app && docker build . -t k3d-registry.localhost:5000/pickle:local
 	@docker push k3d-registry.localhost:5000/pickle:local
 	@kubectl apply -f deploy/pickle-local
-	@kubectl get pods
+	@kubectl wait node --for condition=ready --all --timeout=30s
 
 delete :
 	# delete the cluster (if exists)
@@ -41,8 +41,12 @@ create :
 	@kubectl wait node --for condition=ready --all --timeout=60s
 
 check :
-	# curl all of the endpoints
+	# curl /
 	@curl localhost:30088/
+	@echo
+
+	# curl /v1.0
+	@curl localhost:30088/v1.0
 
 clean :
 	# delete the deployment
