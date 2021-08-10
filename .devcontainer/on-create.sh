@@ -10,7 +10,7 @@ sudo chown -R 472:472 /grafana
 docker network create kind
 
 # create local registry
-docker run -d --net kind --restart=always -p "127.0.0.1:5000:5000" --name kind-registry registry:2
+#docker run -d --net kind --restart=always -p "127.0.0.1:5000:5000" --name kind-registry registry:2
 
 # download rio
 curl -sfL https://get.rio.io | sh -

@@ -2,7 +2,14 @@ apiVersion: k3d.io/v1alpha2
 # name: k3d
 kind: Simple
 servers: 1
-network: kind
+#network: kind
+registries:
+  create: true
+  config: |
+    mirrors:
+      "localhost:5000":
+        endpoint:
+          - http://localhost:5000
 kubeAPI:
   hostIP: "0.0.0.0"
   hostPort: "6443"
