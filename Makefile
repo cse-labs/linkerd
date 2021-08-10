@@ -16,9 +16,14 @@ help :
 	@echo "   make reset-grafana    - reset the Grafana volume (existing data is deleted)"
 	@echo "   make jumpbox          - deploy a 'jumpbox' pod"
 
-all : delete create deploy jumpbox check
+all : delete create app
 
-rall: delete create deploy app jumpbox check
+app :
+	# build the local image and load into k3d
+	@cd app && docker build . -t k3d-registry.localhost:5000/pickle:local
+	@docker push k3d-registry.localhost:5000/pickle:local
+	@kubectl apply -f deploy/pickle-local
+	@kubectl get pods
 
 delete :
 	# delete the cluster (if exists)
@@ -30,11 +35,24 @@ create :
 	@# this will fail harmlessly if the cluster exists
 	@# default cluster name is k3d-k3s-default
 
-	k3d cluster create --registry-use k3d-registry.localhost:5000 --config k3d.yaml
+	k3d cluster create --registry-use k3d-registry.localhost:5000 --config deploy/k3d/k3d.yaml
 
 	# wait for cluster to be ready
 	@kubectl wait node --for condition=ready --all --timeout=60s
 
+check :
+	# curl all of the endpoints
+	@curl localhost:30088/
+
+clean :
+	# delete the deployment
+	@# continue on error
+	-kubectl delete -f deploy/pickle-local --ignore-not-found=true
+
+	# show running pods
+	@kubectl get po -A
+
+### Not Working Yet
 deploy :
 	# deploy the app
 	@# continue on most errors
@@ -62,33 +80,6 @@ deploy :
 
 	# display pod status
 	@kubectl get po -A | grep "default\|monitoring"
-
-check :
-	# curl all of the endpoints
-	@curl localhost:30080/version
-	@echo "\n"
-	@curl localhost:30088/version
-	@echo "\n"
-	@curl localhost:30000
-	@curl localhost:32000
-
-clean :
-	# delete the deployment
-	@# continue on error
-	-kubectl delete -f ../deploy/webv --ignore-not-found=true
-	-kubectl delete -f ../deploy/ngsa-memory --ignore-not-found=true
-	-kubectl delete ns monitoring --ignore-not-found=true
-	-kubectl delete -f ../deploy/fluentbit/fluentbit-pod.yaml --ignore-not-found=true
-	-kubectl delete secret log-secrets --ignore-not-found=true
-
-	# show running pods
-	@kubectl get po -A
-
-app :
-	# build the local image and load into k3d
-	@cd ../app && docker build . -t k3d-registry.localhost:5000/pickle:local
-	@docker push k3d-registry.localhost:5000/pickle:local
-	@kubectl apply -f ../deploy/pickle
 
 webv :
 	# build the local image and load into k3d
