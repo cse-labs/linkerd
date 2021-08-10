@@ -1,3 +1,13 @@
+# pickle root
+GET http://localhost:30088 HTTP/1.1
+
+###
+
+# pickle v1.0
+GET http://localhost:30088/v1.0 HTTP/1.1
+
+###
+
 # Swagger
 GET http://localhost:30080 HTTP/1.1
 
