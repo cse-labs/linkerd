@@ -30,6 +30,6 @@ FROM scratch
 RUN apt-get update && \
     apt-get dist-upgrade -y && \
     apt-get install -y openssl
-COPY --from=builder /usr/local/cargo/bin/depb .
+COPY --from=builder /usr/local/cargo/bin/pickle_depb .
 COPY keys .
 CMD ["./pickle_depb"]
