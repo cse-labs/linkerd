@@ -8,7 +8,9 @@ WORKDIR /usr/src
 RUN apt-get update && \
     apt-get dist-upgrade -y && \
     apt-get install -y musl-tools && \
-    rustup target add x86_64-unknown-linux-musl
+    apt-get install -y openssl && \
+    rustup target add x86_64-unknown-linux-musl && \
+    rustup component add rustfmt
 
 # 1b: Download and compile Rust dependencies (and store as a separate Docker layer)
 RUN USER=root cargo new depb
@@ -18,11 +20,16 @@ RUN cargo install --target x86_64-unknown-linux-musl --path .
 
 # 1c: Build the exe using the actual source code
 COPY src ./src
+COPY proto ./proto
+COPY build.rs .
 RUN ["touch", "src/main.rs"]
 RUN cargo install --target x86_64-unknown-linux-musl --path .
 
 # 2: Copy the exe to an empty Docker image
 FROM scratch
+RUN apt-get update && \
+    apt-get dist-upgrade -y && \
+    apt-get install -y openssl
 COPY --from=builder /usr/local/cargo/bin/depb .
 COPY keys .
-CMD ["./depb"]
+CMD ["./pickle_depb"]
