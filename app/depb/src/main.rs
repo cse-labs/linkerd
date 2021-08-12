@@ -4,7 +4,7 @@ pub mod dill_rpc {
 
 use base64::encode;
 use dill_rpc::sign_words_server::{SignWords, SignWordsServer};
-use dill_rpc::{SignRequest, SignResponse};
+use dill_rpc::{SignRequest, WordsResponse};
 use openssl::sign::Signer;
 use openssl::rsa::Rsa;
 use openssl::pkey::{PKey, Private};
@@ -21,7 +21,7 @@ pub struct MySignWords {
 
 #[tonic::async_trait]
 impl SignWords for MySignWords {
-    async fn sign_words(&self, request: Request<SignRequest>) -> Result<Response<SignResponse>, Status> {
+    async fn sign_words(&self, request: Request<SignRequest>) -> Result<Response<WordsResponse>, Status> {
         
         let mut signer = Signer::new(MessageDigest::sha256(), &self.keypair).unwrap();
         let words = request.into_inner().words;
@@ -33,10 +33,10 @@ impl SignWords for MySignWords {
         signer.update(&timestamp.to_ne_bytes()).unwrap();
         let signature = encode(signer.sign_to_vec().unwrap());
 
-        let reply = SignResponse {
+        let reply = WordsResponse {
             words: words,
-            signature: signature,
-            timestamp: timestamp,
+            signature: Some(signature),
+            timestamp: Some(timestamp),
         };
 
         Ok(Response::new(reply))
