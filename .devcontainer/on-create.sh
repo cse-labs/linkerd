@@ -23,8 +23,4 @@ docker rmi ghcr.io/retaildevcrews/ngsa-app:beta
 # download rio
 #curl -sfL https://get.rio.io | sh -
 
-# install rust musl target
-sudo apt-get install -y --no-install-recommends musl-tools
-rustup target add x86_64-unknown-linux-musl
-
 echo "on-create complete" >> ~/status
