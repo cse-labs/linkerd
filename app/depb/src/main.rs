@@ -35,8 +35,8 @@ impl SignWords for MySignWords {
 
         let reply = WordsResponse {
             words: words,
-            signature: Some(signature),
             timestamp: Some(timestamp),
+            signature: Some(signature),
         };
 
         Ok(Response::new(reply))
