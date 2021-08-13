@@ -37,6 +37,7 @@ create :
 	# from https://linkerd.io/2.10/getting-started/
 	@curl -sL https://run.linkerd.io/install | sh
 	@linkerd install --image-pull-policy IfNotPresent | kubectl apply -f -
+	@kubectl wait pod --for condition=ready --all --timeout=10m --namespace=linkerd --timeout=10m
 	@linkerd viz install | kubectl apply -f - # on-cluster metrics stack
 	# to see, use: linkerd viz dashboard &
 	@linkerd jaeger install | kubectl apply -f - # Jaeger collector and UI
