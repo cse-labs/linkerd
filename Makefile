@@ -75,11 +75,17 @@ clean :
 	# show running pods
 	@kubectl get po -A
 
+app :
+	docker build app/pickle -t pickle:local
+	k3d image import pickle:local
+	docker build app/depa -t pickle_depa:local
+	k3d image import pickle_depa:local
+	docker build app/depb -t pickle_depb:local
+	k3d image import pickle_depb:local
+
 deploy :
 	# build the local image and load into k3d
-	@cd app && docker build . -t k3d-registry.localhost:5000/pickle:local
-	@docker push k3d-registry.localhost:5000/pickle:local
-	@kubectl apply -f deploy/pickle-local
+	@kubectl apply -f deploy/app/pickle.yaml
 	@kubectl wait node --for condition=ready --all --timeout=30s
 
 webv :
