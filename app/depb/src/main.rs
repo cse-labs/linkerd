@@ -52,6 +52,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     file.read(&mut bytes[..])?;
     let rsakey = Rsa::private_key_from_pem(&bytes).unwrap();
     let sw = MySignWords{ keypair: PKey::from_rsa(rsakey).unwrap() };
+    drop(file);
 
     Server::builder()
         .add_service(SignWordsServer::new(sw))
