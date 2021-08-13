@@ -16,12 +16,12 @@ fn generate_words(count: u32) -> Vec<String> {
     let mut gen = Generator::default();
     match count {
         0 => (),
-        1 => words.push(gen.next().unwrap().split('-').collect::<Vec<&str>>()[1].to_string()),
+        1 => words.push(gen.next().unwrap().split('-').collect::<Vec<&str>>()[1].to_string()), // noun
         _ => {
             for _ in 2..count {
-                words.push(gen.next().unwrap().split('-').collect::<Vec<&str>>()[0].to_string())
+                words.push(gen.next().unwrap().split('-').collect::<Vec<&str>>()[0].to_string()) // adjectives
             }
-            for w in gen.next().unwrap().split('-') {
+            for w in gen.next().unwrap().split('-') { // adjective and noun
                 words.push(w.to_string());
             }
         },
