@@ -16,14 +16,7 @@ help :
 	@echo "   make reset-grafana    - reset the Grafana volume (existing data is deleted)"
 	@echo "   make jumpbox          - deploy a 'jumpbox' pod"
 
-all : delete create app check
-
-app :
-	# build the local image and load into k3d
-	@cd app && docker build . -t k3d-registry.localhost:5000/pickle:local
-	@docker push k3d-registry.localhost:5000/pickle:local
-	@kubectl apply -f deploy/pickle-local
-	@kubectl wait node --for condition=ready --all --timeout=30s
+all : delete create check
 
 delete :
 	# delete the cluster (if exists)
@@ -40,13 +33,39 @@ create :
 	# wait for cluster to be ready
 	@kubectl wait node --for condition=ready --all --timeout=60s
 
+	# deploy linkerd with monitoring
+	# from https://linkerd.io/2.10/getting-started/
+	@curl -sL https://run.linkerd.io/install | sh
+	@linkerd install | kubectl apply -f -
+	@linkerd viz install | kubectl apply -f - # on-cluster metrics stack
+	# to see, use: linkerd viz dashboard &
+	@linkerd jaeger install | kubectl apply -f - # Jaeger collector and UI
+
+	# deploy fluent bit
+	-kubectl create secret generic log-secrets --from-literal=WorkspaceId=dev --from-literal=SharedKey=dev
+	-kubectl apply -f deploy/fluentbit/account.yaml
+	-kubectl apply -f deploy/fluentbit/log.yaml
+	-kubectl apply -f deploy/fluentbit/stdout-config.yaml
+	-kubectl apply -f deploy/fluentbit/fluentbit-pod.yaml
+
+	# wait for the pods to start
+	@kubectl wait pod fluentb --for condition=ready --timeout=60s
+
+	# display pod status
+	@kubectl get po -A
+
 check :
+	@linkerd check
+
 	# curl /
 	@curl localhost:30088/
 	@echo
 
 	# curl /v1.0
 	@curl localhost:30088/v1.0
+
+	# display pod status
+	@kubectl get po -A
 
 clean :
 	# delete the deployment
@@ -56,34 +75,12 @@ clean :
 	# show running pods
 	@kubectl get po -A
 
-### Not Working Yet
 deploy :
-	# deploy the app
-	@# continue on most errors
-	-kubectl apply -f ../deploy/ngsa-memory
-
-	# deploy prometheus and grafana
-	-kubectl apply -f ../deploy/prometheus
-	-kubectl apply -f ../deploy/grafana
-
-	# deploy fluent bit
-	-kubectl create secret generic log-secrets --from-literal=WorkspaceId=dev --from-literal=SharedKey=dev
-	-kubectl apply -f ../deploy/fluentbit/account.yaml
-	-kubectl apply -f ../deploy/fluentbit/log.yaml
-	-kubectl apply -f ../deploy/fluentbit/stdout-config.yaml
-	-kubectl apply -f ../deploy/fluentbit/fluentbit-pod.yaml
-
-	# deploy WebValidate after the app starts
-	@kubectl wait pod ngsa-memory --for condition=ready --timeout=30s
-	-kubectl apply -f ../deploy/webv
-
-	# wait for the pods to start
-	@kubectl wait pod -n monitoring --for condition=ready --all --timeout=30s
-	@kubectl wait pod fluentb --for condition=ready --timeout=30s
-	@kubectl wait pod webv --for condition=ready --timeout=30s
-
-	# display pod status
-	@kubectl get po -A | grep "default\|monitoring"
+	# build the local image and load into k3d
+	@cd app && docker build . -t k3d-registry.localhost:5000/pickle:local
+	@docker push k3d-registry.localhost:5000/pickle:local
+	@kubectl apply -f deploy/pickle-local
+	@kubectl wait node --for condition=ready --all --timeout=30s
 
 webv :
 	# build the local image and load into k3d
@@ -93,12 +90,6 @@ webv :
 
 	# display current version
 	-http localhost:30088/version
-
-	# delete / create WebValidate
-	-kubectl delete -f ../deploy/webv --ignore-not-found=true
-	kubectl apply -f ../deploy/webv-local
-	kubectl wait pod webv --for condition=ready --timeout=30s
-	@kubectl get po
 
 	# display the current version
 	@http localhost:30088/version
