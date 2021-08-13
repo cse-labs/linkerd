@@ -2,26 +2,26 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: pickle_depb
+  name: pickle-depb
 spec:
   replicas: 3
   selector:
-    app: pickle_depb
+    app: pickle-depb
   template:
     metadata:
       labels:
-        app: pickle_depb
+        app: pickle-depb
     spec:
       dnsPolicy: ClusterFirst
       containers:
       - name: service
-        image: pickle_depb:latest
+        image: pickle-depb:latest
         env:
-        - name: NODE_NAME
+        - name: NODE-NAME
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        - name: POD_IP
+        - name: POD-IP
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
@@ -32,10 +32,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: pickle_depb
+  name: pickle-depb
 spec:
   selector:
-    app: pickle_depb
+    app: pickle-depb
   clusterIP: None
   ports:
   - name: grpc
@@ -44,26 +44,26 @@ spec:
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: pickle_depa
+  name: pickle-depa
 spec:
   replicas: 2
   selector:
-    app: pickle_depa
+    app: pickle-depa
   template:
     metadata:
       labels:
-        app: pickle_depa
+        app: pickle-depa
     spec:
       dnsPolicy: ClusterFirst
       containers:
       - name: service
-        image: pickle_depb:latest
+        image: pickle-depb:latest
         env:
-        - name: NODE_NAME
+        - name: NODE-NAME
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        - name: POD_IP
+        - name: POD-IP
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
@@ -74,10 +74,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: pickle_depa
+  name: pickle-depa
 spec:
   selector:
-    app: pickle_depa
+    app: pickle-depa
   clusterIP: None
   ports:
   - name: grpc
@@ -101,11 +101,11 @@ spec:
       - name: service
         image: pickle:latest
         env:
-        - name: POD_IP
+        - name: POD-IP
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
-        - name: TARGET_WORLD
+        - name: TARGET-WORLD
           value: pickle
         ports:
         - name: service
