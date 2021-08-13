@@ -15,7 +15,7 @@ spec:
       dnsPolicy: ClusterFirst
       containers:
       - name: service
-        image: pickle-depb:latest
+        image: pickle_depb:local
         env:
         - name: NODE-NAME
           valueFrom:
@@ -57,7 +57,7 @@ spec:
       dnsPolicy: ClusterFirst
       containers:
       - name: service
-        image: pickle-depb:latest
+        image: pickle_depb:local
         env:
         - name: NODE-NAME
           valueFrom:
@@ -99,7 +99,7 @@ spec:
       dnsPolicy: ClusterFirst
       containers:
       - name: service
-        image: pickle:latest
+        image: pickle:local
         env:
         - name: POD-IP
           valueFrom:
