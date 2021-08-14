@@ -86,9 +86,9 @@ app :
 
 deploy :
 	# build the local image and load into k3d
-	@kubectl apply -f deploy/app/pickle_ns.yaml
 	@kubectl create -f deploy/app/pickle.yaml -n pickle
 	@kubectl wait node --for condition=ready --all --timeout=30s
+	@kubectl get -n pickle deploy -o yaml | linkerd inject - | kubectl apply -f -
 
 undeploy :
 	@kubectl delete namespace pickle
