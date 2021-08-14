@@ -86,8 +86,12 @@ app :
 
 deploy :
 	# build the local image and load into k3d
-	@kubectl apply -f deploy/app/pickle.yaml
+	@kubectl apply -f deploy/app/pickle_ns.yaml
+	@kubectl create -f deploy/app/pickle.yaml -n pickle
 	@kubectl wait node --for condition=ready --all --timeout=30s
+
+undeploy :
+	@kubectl delete namespace pickle
 
 webv :
 	# build the local image and load into k3d

@@ -31,7 +31,7 @@ fn index() -> &'static str {
 
 #[get("/words?<params>")]
 async fn words(params: Params) -> Option<Value> {
-    let client = PickWordsClient::connect("http://[::1]:9090").await;
+    let client = PickWordsClient::connect("http://pickle-depa:9090").await;
 
     let mut client = match client {
         Ok(client) => client,
@@ -55,7 +55,7 @@ async fn words(params: Params) -> Option<Value> {
 
 #[post("/words", data = "<words>")]
 async fn sign_words(words: Json<Words>) -> Option<Value> {
-    let client = SignWordsClient::connect("http://[::1]:9090").await;
+    let client = SignWordsClient::connect("http://pickle-depb:9090").await;
 
     let mut client = match client {
         Ok(client) => client,
