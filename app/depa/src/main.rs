@@ -5,6 +5,7 @@ pub mod dill_rpc {
 use dill_rpc::pick_words_server::{PickWords, PickWordsServer};
 use dill_rpc::sign_words_client::{SignWordsClient};
 use dill_rpc::{SignRequest, WordsRequest, WordsResponse};
+use log::info;
 use names::Generator;
 use tonic::{transport::Server, Request, Response, Status};
 
@@ -44,9 +45,15 @@ impl PickWords for MyPickWords {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
+    info!("depa");
+
     let addr = "0.0.0.0:9090".parse()?;
     let pw = MyPickWords::default();
 
+    info!("WordsServer listening on {}", addr);
+
+    info!("starting server");
     Server::builder()
         .add_service(PickWordsServer::new(pw))
         .serve(addr)

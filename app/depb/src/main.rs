@@ -5,6 +5,7 @@ pub mod dill_rpc {
 use base64::encode;
 use dill_rpc::sign_words_server::{SignWords, SignWordsServer};
 use dill_rpc::{SignRequest, WordsResponse};
+use log::info;
 use openssl::sign::Signer;
 use openssl::rsa::Rsa;
 use openssl::pkey::{PKey, Private};
@@ -45,7 +46,12 @@ impl SignWords for MySignWords {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
+    info!("depb");
+
     let addr = "0.0.0.0:9090".parse()?;
+
+    info!("SignServer listening on {}", addr);
 
     let mut bytes: [u8; 8192] = [0; 8192];
     let mut file = File::open("keys/pickle.key")?;
@@ -54,6 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sw = MySignWords{ keypair: PKey::from_rsa(rsakey).unwrap() };
     drop(file);
 
+    info!("starting server");
     Server::builder()
         .add_service(SignWordsServer::new(sw))
         .serve(addr)

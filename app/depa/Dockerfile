@@ -27,4 +27,5 @@ RUN cargo install --target x86_64-unknown-linux-musl --path .
 # 2: Copy the exe to an empty Docker image
 FROM scratch
 COPY --from=builder /usr/local/cargo/bin/pickle_depa .
+ENV RUST_LOG=INFO
 CMD ["./pickle_depa"]

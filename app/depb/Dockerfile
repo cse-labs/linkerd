@@ -30,4 +30,5 @@ RUN apt-get update && \
     apt-get install -y openssl
 COPY --from=builder /usr/local/cargo/bin/pickle_depb .
 COPY keys .
+ENV RUST_LOG=INFO
 CMD ["./pickle_depb"]
