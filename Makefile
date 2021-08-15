@@ -82,6 +82,9 @@ deploy :
 	@kubectl create -f deploy/app/pickle.yaml -n pickle
 	@kubectl wait node --for condition=ready --all --timeout=30s
 	@kubectl get -n pickle deploy -o yaml | linkerd inject - | kubectl apply -f -
+	# Use: linkerd viz dashboard &
+	# to view the linkerd dashboard
+
 
 undeploy :
 	@kubectl delete namespace pickle
