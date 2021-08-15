@@ -36,7 +36,7 @@ impl PickWords for MyPickWords {
 
         let reply = WordsResponse {
             words: generate_words(request.into_inner().count.into()),
-            ..Default::default()
+            ..Default::default(),
         };
 
         Ok(Response::new(reply))
