@@ -16,7 +16,7 @@ help :
 	@echo "   make reset-grafana    - reset the Grafana volume (existing data is deleted)"
 	@echo "   make jumpbox          - deploy a 'jumpbox' pod"
 
-all : delete create check
+all : delete create check app deploy
 
 delete :
 	# delete the cluster (if exists)
@@ -57,13 +57,6 @@ create :
 
 check :
 	@linkerd check
-
-	# curl /
-	@curl localhost:30088/
-	@echo
-
-	# curl /v1.0
-	@curl localhost:30088/v1.0
 
 	# display pod status
 	@kubectl get po -A
