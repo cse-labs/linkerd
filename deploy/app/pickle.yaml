@@ -28,12 +28,12 @@ metadata:
   namespace: pickle
 spec:
   ports:
-  - name: http
-    port: 80
-    targetPort: 8000
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30088
   selector:
     app: web-svc
-  type: ClusterIP
+  type: NodePort
 ---
 apiVersion: v1
 kind: Service
