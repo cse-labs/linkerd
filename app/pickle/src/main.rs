@@ -7,6 +7,7 @@ pub mod dill_rpc {
 use dill_rpc::pick_words_client::{PickWordsClient};
 use dill_rpc::sign_words_client::{SignWordsClient};
 use dill_rpc::{SignRequest, WordsRequest, WordsResponse};
+use log::{error};
 use rocket::form::{FromForm};
 use rocket::serde::{Deserialize, Serialize};
 use rocket::serde::json::{json, Json, Value};
@@ -14,65 +15,78 @@ use rocket::serde::json::{json, Json, Value};
 #[derive(Deserialize, Serialize)]
 struct Words {
     words: Vec<String>,
-    timestamp: u64,
-    signature: String,
+    timestamp: Option<u64>,
+    signature: Option<String>,
 }
 
 #[derive(FromForm)]
-struct Params {
+struct Options {
     count: u8,
     signed: bool,
 }
 
 #[get("/")]
 fn index() -> &'static str {
-    "words"
+    "GET /words?count=4&signed or POST /sign with json words: list body"
 }
 
-#[get("/words?<params>")]
-async fn words(params: Params) -> Option<Value> {
+#[get("/words?<opt..>")]
+async fn words(opt: Options) -> Option<Value> {
     let client = PickWordsClient::connect("http://words-svc:9090").await;
-
     let mut client = match client {
         Ok(client) => client,
-        Err(_e) => return None
+        Err(e) => {
+            error!("Failed to create GetWords client: {}", e);
+            return None
+        },
     };
 
     let request = tonic::Request::new(WordsRequest {
-        count: u32::from(params.count),
-        signed: params.signed,
+        count: u32::from(opt.count),
+        signed: opt.signed,
     });
 
     let response = client.get_words(request).await;
-
     let response = match response {
         Ok(response) => response,
-        Err(_e) => return None
+        Err(e) =>  {
+            error!("Failed to call GetWords service: {}", e);
+            return None
+        },
     };
 
     Some(json!(Words::from(response.into_inner())))
 }
 
-#[post("/words", data = "<words>")]
+#[get("/words")]
+async fn words_default() -> Option<Value> {
+    let opt = Options{ count: 8, signed: false };
+    words(opt).await
+}
+
+#[post("/sign", data = "<words>")]
 async fn sign_words(words: Json<Words>) -> Option<Value> {
     let client = SignWordsClient::connect("http://signing-svc:9090").await;
-
     let mut client = match client {
         Ok(client) => client,
-        Err(_e) => return None
+        Err(e) => {
+            error!("Failed to create SignWords client: {}", e);
+            return None
+        },
     };
 
     let v = &words.words;
-
     let request = tonic::Request::new(SignRequest {
         words: v.to_vec(),
     });
 
     let response = client.sign_words(request).await;
-
     let response = match response {
         Ok(response) => response,
-        Err(_e) => return None
+        Err(e) => {
+            error!("Failed to call SignWords service: {}", e);
+            return None
+        },
     };
 
     Some(json!(Words::from(response.into_inner())))
@@ -80,7 +94,7 @@ async fn sign_words(words: Json<Words>) -> Option<Value> {
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![index, words, sign_words])
+    rocket::build().mount("/", routes![sign_words, words_default, words, index])
 }
 
 impl Words {
@@ -88,8 +102,8 @@ impl Words {
     fn from(proto: WordsResponse) -> Words {
         Words {
             words: proto.words,
-            timestamp: proto.timestamp.unwrap(),
-            signature: proto.signature.unwrap(),
+            timestamp: Some(proto.timestamp.unwrap()),
+            signature: Some(proto.signature.unwrap()),
         }
     }
 }

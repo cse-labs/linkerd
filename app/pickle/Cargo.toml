@@ -5,6 +5,7 @@ authors = ["Dan Massey <danmass@microsoft.com>"]
 edition = "2018"
 
 [dependencies]
+log = "0.4.14"
 prost = "0.8"
 prost-types = "0.8"
 serde = "1.0"
