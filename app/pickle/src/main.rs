@@ -102,8 +102,14 @@ impl Words {
     fn from(proto: WordsResponse) -> Words {
         Words {
             words: proto.words,
-            timestamp: Some(proto.timestamp.unwrap()),
-            signature: Some(proto.signature.unwrap()),
+            timestamp: match proto.timestamp {
+                Some(time) => Some(time),
+                _ => None,
+            },
+            signature: match proto.signature {
+                Some(signature) => Some(signature),
+                _ => None,
+            },
         }
     }
 }
