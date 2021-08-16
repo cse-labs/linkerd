@@ -12,7 +12,7 @@ use rocket::form::{FromForm};
 use rocket::serde::{Deserialize, Serialize};
 use rocket::serde::json::{json, Json, Value};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct Words {
     words: Vec<String>,
     timestamp: Option<u64>,
@@ -105,5 +105,37 @@ impl Words {
             timestamp: Some(proto.timestamp.unwrap()),
             signature: Some(proto.signature.unwrap()),
         }
+    }
+}
+
+impl PartialEq for Words {
+
+    fn eq(&self, other: &Self) -> bool {
+        (self.words.len() == other.words.len()) &&
+            self.words.iter()
+            .zip(&other.words)
+            .all(|(a,b)| a == b) &&
+        self.timestamp == self.timestamp &&
+        self.signature == self.signature
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn words_from_wordsresponse() {
+        let p = WordsResponse {
+            words: vec![String::from("happy"), String::from("hungry"), String::from("hare")],
+            ..Default::default()
+        };
+        let s = Words::from(p);
+        assert_eq!(s, Words {
+            words: vec![String::from("happy"), String::from("hungry"), String::from("hare")],
+            timestamp: None,
+            signature: None,
+        })
     }
 }
