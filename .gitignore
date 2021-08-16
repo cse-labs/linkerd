@@ -5,6 +5,9 @@
 *.so
 *.dylib
 
+# Secrets
+**/pickle.key
+
 # Rust outputs
 **/debug/
 **/target/

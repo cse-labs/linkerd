@@ -2,6 +2,7 @@
 
 echo "post-start start" >> ~/status
 
-# this runs in background each time the container starts
+rm -f ../app/depb/keys/pickle.key
+echo echo $PICKLE_PRIVATE_KEY >> ../app/depb/keys/pickle.key
 
 echo "post-start complete" >> ~/status
