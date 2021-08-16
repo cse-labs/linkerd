@@ -15,7 +15,11 @@ use rocket::serde::json::{json, Json, Value};
 #[derive(Debug, Deserialize, Serialize)]
 struct Words {
     words: Vec<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     timestamp: Option<u64>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     signature: Option<String>,
 }
 
