@@ -85,6 +85,9 @@ spec:
       containers:
       - image: pickle:local
         name: web-svc
+        env:
+        - name: RUST_LOG
+          value: "INFO"
         ports:
         - containerPort: 8000
           name: http
@@ -114,6 +117,9 @@ spec:
       containers:
       - image: pickle_depa:local
         name: words-svc
+        env:
+        - name: RUST_LOG
+          value: "INFO"
         ports:
         - containerPort: 9090
           name: grpc
@@ -143,4 +149,7 @@ spec:
       containers:
       - image: pickle_depb:local
         name: signing-svc
+        env:
+        - name: RUST_LOG
+          value: "INFO"
       serviceAccountName: signer
