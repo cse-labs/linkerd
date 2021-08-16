@@ -25,9 +25,7 @@
 
 	// add labels
 	"portsAttributes": {
-		"30000": { "label": "Prometheus" },
 		"30088": { "label": "Pickle" },
-		"32000": { "label": "Grafana" },
 	},
 
 	// Install extensions
