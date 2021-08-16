@@ -25,10 +25,7 @@
 
 	// add labels
 	"portsAttributes": {
-		"30000": { "label": "Prometheus" },
-		"30080": { "label": "ngsa-app" },
-		"30088": { "label": "WebV" },
-		"32000": { "label": "Grafana" },
+		"30088": { "label": "Pickle" },
 	},
 
 	// Install extensions

@@ -5,6 +5,11 @@
 *.so
 *.dylib
 
+# Rust outputs
+**/debug/
+**/target/
+**/Cargo.lock
+
 # Test binary, built with `go test -c`
 *.test
 

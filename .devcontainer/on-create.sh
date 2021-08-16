@@ -5,7 +5,7 @@ echo "on-create start" >> ~/status
 # copy grafana.db to /grafana
 sudo rm -f /grafana/grafana.db
 sudo cp deploy/grafanadata/grafana.db /grafana
-sudo chown -R 472:472 /grafana
+sudo chown -R 472:0 /grafana
 
 docker network create kind
 
@@ -22,9 +22,5 @@ docker rmi ghcr.io/retaildevcrews/ngsa-app:beta
 
 # download rio
 #curl -sfL https://get.rio.io | sh -
-
-# install rust musl target
-sudo apt-get install -y --no-install-recommends musl-tools
-rustup target add x86_64-unknown-linux-musl
 
 echo "on-create complete" >> ~/status

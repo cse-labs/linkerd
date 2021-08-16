@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package dill;
+
+service PickWords {
+    rpc GetWords(WordsRequest) returns (WordsResponse);
+}
+
+service SignWords {
+    rpc SignWords(SignRequest) returns (WordsResponse);
+}
+
+message SignRequest {
+  repeated string words = 1;
+}
+
+message WordsRequest {
+  uint32 count = 1;
+  bool signed = 2;
+}
+
+message WordsResponse {
+  repeated string words = 1;
+  optional uint64 timestamp = 2;
+  optional string signature = 3;
+}
