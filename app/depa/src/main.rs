@@ -5,7 +5,7 @@ pub mod dill_rpc {
 use dill_rpc::pick_words_server::{PickWords, PickWordsServer};
 use dill_rpc::sign_words_client::{SignWordsClient};
 use dill_rpc::{SignRequest, WordsRequest, WordsResponse};
-use log::info;
+use log::{error, info};
 use names::Generator;
 use tonic::{transport::Server, Request, Response, Status};
 
@@ -33,13 +33,46 @@ fn generate_words(count: u32) -> Vec<String> {
 #[tonic::async_trait]
 impl PickWords for MyPickWords {
     async fn get_words(&self, request: Request<WordsRequest>) -> Result<Response<WordsResponse>, Status> {
+        let words_request = request.into_inner();
+        let count = words_request.count.into();
+        let sign = words_request.signed.into();
 
-        let reply = WordsResponse {
-            words: generate_words(request.into_inner().count.into()),
-            ..Default::default()
-        };
+        let words = generate_words(count);
 
-        Ok(Response::new(reply))
+        match sign {
+            true => {
+                let client = SignWordsClient::connect("http://signing-svc:9090").await;
+                let mut client = match client {
+                    Ok(client) => client,
+                    Err(e) => {
+                        error!("Failed to create SignWords client: {}", e);
+                        return Err(Status::unknown(format!("error creating signing client")))
+                    },
+                };
+
+                let v = &words;
+                let request = tonic::Request::new(SignRequest {
+                    words: v.to_vec(),
+                });
+
+                let response = client.sign_words(request).await;
+                match response {
+                    Ok(response) => return Ok(response),
+                    Err(e) => {
+                        error!("Failed to call SignWords service: {}", e);
+                        return Err(Status::unknown(format!("error invoking signing service")))
+                    },
+                };
+            },
+            false => {
+                let reply = WordsResponse {
+                    words: words,
+                    ..Default::default()
+                };
+        
+                return Ok(Response::new(reply))
+            }
+        }
     }
 }
 
