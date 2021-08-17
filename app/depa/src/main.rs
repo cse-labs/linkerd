@@ -5,8 +5,10 @@ pub mod dill_rpc {
 use dill_rpc::pick_words_server::{PickWords, PickWordsServer};
 use dill_rpc::sign_words_client::{SignWordsClient};
 use dill_rpc::{SignRequest, WordsRequest, WordsResponse};
+use futures::FutureExt;
 use log::{error, info};
 use names::Generator;
+use tokio::{signal, sync::oneshot};
 use tonic::{transport::Server, Request, Response, Status};
 
 #[derive(Default)]
@@ -84,14 +86,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "0.0.0.0:9090".parse()?;
     let pw = MyPickWords::default();
 
-    info!("WordsServer listening on {}", addr);
-
     info!("starting server");
-    Server::builder()
-        .add_service(PickWordsServer::new(pw))
-        .serve(addr)
-        .await?;
+    info!("WordsServer listening on {}", addr);
+    let (tx, rx) = oneshot::channel::<()>();
+    let server = tokio::spawn(async move {
+        Server::builder()
+            .add_service(PickWordsServer::new(pw))
+            .serve_with_shutdown(addr, rx.map(drop))
+            .await
+            .unwrap();
+    });
 
+    // graceful shutdown on ctrl-c
+    match signal::ctrl_c().await {
+        Ok(()) => {},
+        Err(err) => {
+            error!("Unable to listen for shutdown signal: {}", err);
+        },
+    };
+    tx.send(()).unwrap();
+    server.await.unwrap();
     Ok(())
 }
 
