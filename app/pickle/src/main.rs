@@ -10,7 +10,7 @@ use dill_rpc::{SignRequest, WordsRequest, WordsResponse};
 use log::{error};
 use rocket::form::{FromForm};
 use rocket::serde::{Deserialize, Serialize};
-use rocket::serde::json::{json, Json, Value};
+use rocket::serde::json::Json;
 use std::time::Duration;
 use tonic::transport::Channel;
 use tower::timeout::Timeout;
@@ -38,7 +38,7 @@ fn index() -> &'static str {
 }
 
 #[get("/words?<opt..>")]
-async fn words(opt: Options) -> Option<Value> {
+async fn words(opt: Options) -> Option<String> {
     let channel = match Channel::from_static("http://words-svc:9090").connect().await {
         Ok(channel) => channel,
         Err(e) => {
@@ -55,8 +55,7 @@ async fn words(opt: Options) -> Option<Value> {
         signed: opt.signed,
     });
 
-    let response = client.get_words(request).await;
-    let response = match response {
+    let response = match client.get_words(request).await {
         Ok(response) => response,
         Err(e) =>  {
             error!("Failed to call GetWords service: {}", e);
@@ -64,17 +63,17 @@ async fn words(opt: Options) -> Option<Value> {
         },
     };
 
-    Some(json!(Words::from(response.into_inner())))
+    Some(serde_json::to_string_pretty(&Words::from(response.into_inner())).unwrap())
 }
 
 #[get("/words")]
-async fn words_default() -> Option<Value> {
-    let opt = Options{ count: 8, signed: false };
+async fn words_default() -> Option<String> {
+    let opt = Options{ count: 4, signed: false };
     words(opt).await
 }
 
 #[post("/sign", data = "<words>")]
-async fn sign_words(words: Json<Words>) -> Option<Value> {
+async fn sign_words(words: Json<Words>) -> Option<String> {
     let channel = match Channel::from_static("http://signing-svc:9090").connect().await {
         Ok(channel) => channel,
         Err(e) => {
@@ -100,7 +99,7 @@ async fn sign_words(words: Json<Words>) -> Option<Value> {
         },
     };
 
-    Some(json!(Words::from(response.into_inner())))
+    Some(serde_json::to_string_pretty(&Words::from(response.into_inner())).unwrap())
 }
 
 #[launch]
