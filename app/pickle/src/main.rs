@@ -7,7 +7,7 @@ pub mod dill_rpc {
 use dill_rpc::pick_words_client::{PickWordsClient};
 use dill_rpc::sign_words_client::{SignWordsClient};
 use dill_rpc::{SignRequest, WordsRequest, WordsResponse};
-use log::{error};
+use log::error;
 use rocket::form::{FromForm};
 use rocket::serde::{Deserialize, Serialize};
 use rocket::serde::json::Json;
@@ -90,8 +90,7 @@ async fn sign_words(words: Json<Words>) -> Option<String> {
         words: v.to_vec(),
     });
 
-    let response = client.sign_words(request).await;
-    let response = match response {
+    let response = match client.sign_words(request).await {
         Ok(response) => response,
         Err(e) => {
             error!("Failed to call SignWords service: {}", e);
