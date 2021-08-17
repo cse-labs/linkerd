@@ -11,6 +11,9 @@ use log::{error};
 use rocket::form::{FromForm};
 use rocket::serde::{Deserialize, Serialize};
 use rocket::serde::json::{json, Json, Value};
+use std::time::Duration;
+use tonic::transport::Channel;
+use tower::timeout::Timeout;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Words {
@@ -36,14 +39,16 @@ fn index() -> &'static str {
 
 #[get("/words?<opt..>")]
 async fn words(opt: Options) -> Option<Value> {
-    let client = PickWordsClient::connect("http://words-svc:9090").await;
-    let mut client = match client {
-        Ok(client) => client,
+    let channel = match Channel::from_static("http://words-svc:9090").connect().await {
+        Ok(channel) => channel,
         Err(e) => {
-            error!("Failed to create GetWords client: {}", e);
+            error!("Failed to create GetWords channel: {}", e);
             return None
         },
     };
+
+    let timeout_channel = Timeout::new(channel, Duration::from_millis(500));
+    let mut client = PickWordsClient::new(timeout_channel);
 
     let request = tonic::Request::new(WordsRequest {
         count: u32::from(opt.count),
@@ -70,14 +75,16 @@ async fn words_default() -> Option<Value> {
 
 #[post("/sign", data = "<words>")]
 async fn sign_words(words: Json<Words>) -> Option<Value> {
-    let client = SignWordsClient::connect("http://signing-svc:9090").await;
-    let mut client = match client {
-        Ok(client) => client,
+    let channel = match Channel::from_static("http://signing-svc:9090").connect().await {
+        Ok(channel) => channel,
         Err(e) => {
-            error!("Failed to create SignWords client: {}", e);
+            error!("Failed to create SignWords channel: {}", e);
             return None
         },
     };
+
+    let timeout_channel = Timeout::new(channel, Duration::from_millis(500));
+    let mut client = SignWordsClient::new(timeout_channel);
 
     let v = &words.words;
     let request = tonic::Request::new(SignRequest {

@@ -85,7 +85,6 @@ deploy :
 	# Use: linkerd viz dashboard &
 	# to view the linkerd dashboard
 
-
 undeploy :
 	@kubectl delete namespace pickle
 

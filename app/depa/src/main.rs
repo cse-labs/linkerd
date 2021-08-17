@@ -8,8 +8,10 @@ use dill_rpc::{SignRequest, WordsRequest, WordsResponse};
 use futures::FutureExt;
 use log::{error, info};
 use names::Generator;
+use std::time::Duration;
 use tokio::{signal, sync::oneshot};
-use tonic::{transport::Server, Request, Response, Status};
+use tonic::{transport::{Channel, Server}, Request, Response, Status};
+use tower::timeout::Timeout;
 
 #[derive(Default)]
 pub struct MyPickWords {}
@@ -43,14 +45,16 @@ impl PickWords for MyPickWords {
 
         match sign {
             true => {
-                let client = SignWordsClient::connect("http://signing-svc:9090").await;
-                let mut client = match client {
-                    Ok(client) => client,
+                let channel = match Channel::from_static("http://signing-svc:9090").connect().await {
+                    Ok(channel) => channel,
                     Err(e) => {
-                        error!("Failed to create SignWords client: {}", e);
-                        return Err(Status::unknown(format!("error creating signing client")))
+                        error!("Failed to create SignWords channel: {}", e);
+                        return Err(Status::unknown(format!("error creating channel to signing service")))
                     },
                 };
+            
+                let timeout_channel = Timeout::new(channel, Duration::from_millis(500));
+                let mut client = SignWordsClient::new(timeout_channel);
 
                 let v = &words;
                 let request = tonic::Request::new(SignRequest {
