@@ -8,13 +8,29 @@ use dill_rpc::{SignRequest, WordsRequest, WordsResponse};
 use futures::FutureExt;
 use log::{error, info};
 use names::Generator;
+use rocket::serde::Deserialize;
 use std::time::Duration;
+use structopt::StructOpt;
 use tokio::{signal, sync::oneshot};
 use tonic::{transport::{Channel, Server}, Request, Response, Status};
 use tower::timeout::Timeout;
 
+#[derive(StructOpt, Deserialize)]
+struct Args {
+
+    // address of the SignWords grpc service
+    #[structopt(short = "s", long = "sign-svc-addr", default_value = "http://signing-svc:9090")]
+    sign_svc_addr: String,
+
+    // pretty print the json or use compact form
+    #[structopt(short = "p", long = "port", default_value = "9090")]
+    port: u16,
+}
+
 #[derive(Default)]
-pub struct MyPickWords {}
+pub struct MyPickWords {
+    sign_svc_addr: String,
+}
 
 fn generate_words(count: u32) -> Vec<String> {
     let mut words = Vec::new();
@@ -45,7 +61,8 @@ impl PickWords for MyPickWords {
 
         match sign {
             true => {
-                let channel = match Channel::from_static("http://signing-svc:9090").connect().await {
+                let addr = self.sign_svc_addr.clone();
+                let channel = match Channel::from_shared(addr).unwrap().connect().await {
                     Ok(channel) => channel,
                     Err(e) => {
                         error!("Failed to create SignWords channel: {}", e);
@@ -85,10 +102,11 @@ impl PickWords for MyPickWords {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
+    let args = Args::from_args();
     info!("depa");
 
-    let addr = "0.0.0.0:9090".parse()?;
-    let pw = MyPickWords::default();
+    let addr = format!("0.0.0.0:{}", args.port).parse()?;
+    let pw = MyPickWords{ sign_svc_addr: args.sign_svc_addr };
 
     info!("starting server");
     info!("WordsServer listening on {}", addr);

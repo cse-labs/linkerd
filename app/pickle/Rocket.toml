@@ -1,5 +1,8 @@
 [global]
 address = "0.0.0.0"
+words-svc-addr = "http://words-svc:9090"
+sign-svc-addr = "http://signing-svc:9090"
+pretty-json = true
 
-[development]
+[debug]
 address = "0.0.0.0"

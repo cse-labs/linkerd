@@ -8,12 +8,27 @@ use dill_rpc::pick_words_client::{PickWordsClient};
 use dill_rpc::sign_words_client::{SignWordsClient};
 use dill_rpc::{SignRequest, WordsRequest, WordsResponse};
 use log::error;
+use once_cell::sync::OnceCell;
 use rocket::form::{FromForm};
 use rocket::serde::{Deserialize, Serialize};
 use rocket::serde::json::Json;
 use std::time::Duration;
 use tonic::transport::Channel;
 use tower::timeout::Timeout;
+
+#[derive(Debug)]
+struct Config {
+    words_svc_addr: String,
+    sign_svc_addr: String,
+    pretty_json: bool,
+}
+static CONFIG: OnceCell<Config> = OnceCell::new();
+
+#[derive(FromForm)]
+struct Options {
+    count: u8,
+    signed: bool,
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Words {
@@ -26,12 +41,6 @@ struct Words {
     signature: Option<String>,
 }
 
-#[derive(FromForm)]
-struct Options {
-    count: u8,
-    signed: bool,
-}
-
 #[get("/")]
 fn index() -> &'static str {
     "GET /words?count=4&signed or POST /sign with json words: list body"
@@ -39,7 +48,7 @@ fn index() -> &'static str {
 
 #[get("/words?<opt..>")]
 async fn words(opt: Options) -> Option<String> {
-    let channel = match Channel::from_static("http://words-svc:9090").connect().await {
+    let channel = match Channel::from_static(&CONFIG.get().unwrap().words_svc_addr).connect().await {
         Ok(channel) => channel,
         Err(e) => {
             error!("Failed to create GetWords channel: {}", e);
@@ -63,7 +72,10 @@ async fn words(opt: Options) -> Option<String> {
         },
     };
 
-    Some(serde_json::to_string_pretty(&Words::from(response.into_inner())).unwrap())
+    match CONFIG.get().unwrap().pretty_json {
+        true => Some(serde_json::to_string_pretty(&Words::from(response.into_inner())).unwrap()),
+        _ => Some(serde_json::to_string(&Words::from(response.into_inner())).unwrap()),
+    }
 }
 
 #[get("/words")]
@@ -74,7 +86,7 @@ async fn words_default() -> Option<String> {
 
 #[post("/sign", data = "<words>")]
 async fn sign_words(words: Json<Words>) -> Option<String> {
-    let channel = match Channel::from_static("http://signing-svc:9090").connect().await {
+    let channel = match Channel::from_static(&CONFIG.get().unwrap().sign_svc_addr).connect().await {
         Ok(channel) => channel,
         Err(e) => {
             error!("Failed to create SignWords channel: {}", e);
@@ -98,12 +110,23 @@ async fn sign_words(words: Json<Words>) -> Option<String> {
         },
     };
 
-    Some(serde_json::to_string_pretty(&Words::from(response.into_inner())).unwrap())
+    match CONFIG.get().unwrap().pretty_json {
+        true => Some(serde_json::to_string_pretty(&Words::from(response.into_inner())).unwrap()),
+        _ => Some(serde_json::to_string(&Words::from(response.into_inner())).unwrap()),
+    }
 }
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![sign_words, words_default, words, index])
+    let rocket = rocket::build().mount("/", routes![sign_words, words_default, words, index]);
+    let figment = rocket.figment();
+    let config = Config {
+        words_svc_addr: figment.extract_inner("words-svc-addr").expect("words-svc-addr"),
+        sign_svc_addr: figment.extract_inner("sign-svc-addr").expect("signs-svc-addr"),
+        pretty_json: figment.extract_inner("pretty-json").expect("pretty-json"),
+    };
+    CONFIG.set(config).unwrap();
+    rocket
 }
 
 impl Words {

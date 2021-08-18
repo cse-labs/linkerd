@@ -1,7 +1,7 @@
 # from https://www.artificialworlds.net/blog/2020/04/22/creating-a-tiny-docker-image-of-a-rust-project/
 #
 # 1: Build the exe
-FROM rust:1.53 as builder
+FROM rust:1.53-slim as builder
 WORKDIR /usr/src
 
 # 1a: Prepare for static linking
@@ -25,8 +25,10 @@ RUN ["touch", "src/main.rs"]
 RUN cargo install --target x86_64-unknown-linux-musl --path .
 
 # 2: Copy the exe to an empty Docker image
-FROM scratch
+FROM alpine:3.14
 COPY --from=builder /usr/local/cargo/bin/pickle .
 COPY Rocket.toml .
+ARG RUST_LOG=TRACE
+ENV RUST_LOG=$RUST_LOG
 EXPOSE 8000
 CMD ["./pickle"]
