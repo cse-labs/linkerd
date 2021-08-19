@@ -5,16 +5,28 @@ pub mod dill_rpc {
 use base64::encode;
 use dill_rpc::sign_words_server::{SignWords, SignWordsServer};
 use dill_rpc::{SignRequest, WordsResponse};
-use log::info;
+use futures::FutureExt;
+use log::{error, info};
 use openssl::sign::Signer;
 use openssl::rsa::Rsa;
 use openssl::pkey::{PKey, Private};
 use openssl::hash::MessageDigest;
+use rocket::serde::Deserialize;
 use std::convert::TryFrom;
 use std::fs::File;
 use std::io::Read;
 use std::time::{SystemTime, UNIX_EPOCH};
+use structopt::StructOpt;
+use tokio::{signal, sync::oneshot};
 use tonic::{transport::Server, Request, Response, Status};
+
+#[derive(StructOpt, Deserialize)]
+struct Args {
+
+    // pretty print the json or use compact form
+    #[structopt(short = "p", long = "port", default_value = "9090")]
+    port: u16,
+}
 
 pub struct MySignWords {
     keypair: PKey<Private>,
@@ -47,11 +59,10 @@ impl SignWords for MySignWords {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
+    let args = Args::from_args();
     info!("depb");
 
-    let addr = "0.0.0.0:9090".parse()?;
-
-    info!("SignServer listening on {}", addr);
+    let addr = format!("0.0.0.0:{}", args.port).parse()?;
 
     let mut bytes: [u8; 8192] = [0; 8192];
     let mut file = File::open("keys/pickle.key")?;
@@ -61,10 +72,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     drop(file);
 
     info!("starting server");
-    Server::builder()
-        .add_service(SignWordsServer::new(sw))
-        .serve(addr)
-        .await?;
+    info!("SignServer listening on {}", addr);
+    let (tx, rx) = oneshot::channel::<()>();
+    let server = tokio::spawn(async move {
+        Server::builder()
+            .add_service(SignWordsServer::new(sw))
+            .serve_with_shutdown(addr, rx.map(drop))
+            .await
+            .unwrap();
+    });
 
+    // graceful shutdown on ctrl-c
+    match signal::ctrl_c().await {
+        Ok(()) => {},
+        Err(err) => {
+            error!("Unable to listen for shutdown signal: {}", err);
+        },
+    };
+    tx.send(()).unwrap();
+    server.await.unwrap();
     Ok(())
 }

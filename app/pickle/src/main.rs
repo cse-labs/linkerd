@@ -7,10 +7,28 @@ pub mod dill_rpc {
 use dill_rpc::pick_words_client::{PickWordsClient};
 use dill_rpc::sign_words_client::{SignWordsClient};
 use dill_rpc::{SignRequest, WordsRequest, WordsResponse};
-use log::{error};
+use log::error;
+use once_cell::sync::OnceCell;
 use rocket::form::{FromForm};
 use rocket::serde::{Deserialize, Serialize};
-use rocket::serde::json::{json, Json, Value};
+use rocket::serde::json::Json;
+use std::time::Duration;
+use tonic::transport::Channel;
+use tower::timeout::Timeout;
+
+#[derive(Debug)]
+struct Config {
+    words_svc_addr: String,
+    sign_svc_addr: String,
+    pretty_json: bool,
+}
+static CONFIG: OnceCell<Config> = OnceCell::new();
+
+#[derive(FromForm)]
+struct Options {
+    count: u8,
+    signed: bool,
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Words {
@@ -23,35 +41,30 @@ struct Words {
     signature: Option<String>,
 }
 
-#[derive(FromForm)]
-struct Options {
-    count: u8,
-    signed: bool,
-}
-
 #[get("/")]
 fn index() -> &'static str {
     "GET /words?count=4&signed or POST /sign with json words: list body"
 }
 
 #[get("/words?<opt..>")]
-async fn words(opt: Options) -> Option<Value> {
-    let client = PickWordsClient::connect("http://words-svc:9090").await;
-    let mut client = match client {
-        Ok(client) => client,
+async fn words(opt: Options) -> Option<String> {
+    let channel = match Channel::from_static(&CONFIG.get().unwrap().words_svc_addr).connect().await {
+        Ok(channel) => channel,
         Err(e) => {
-            error!("Failed to create GetWords client: {}", e);
+            error!("Failed to create GetWords channel: {}", e);
             return None
         },
     };
+
+    let timeout_channel = Timeout::new(channel, Duration::from_millis(500));
+    let mut client = PickWordsClient::new(timeout_channel);
 
     let request = tonic::Request::new(WordsRequest {
         count: u32::from(opt.count),
         signed: opt.signed,
     });
 
-    let response = client.get_words(request).await;
-    let response = match response {
+    let response = match client.get_words(request).await {
         Ok(response) => response,
         Err(e) =>  {
             error!("Failed to call GetWords service: {}", e);
@@ -59,33 +72,37 @@ async fn words(opt: Options) -> Option<Value> {
         },
     };
 
-    Some(json!(Words::from(response.into_inner())))
+    match CONFIG.get().unwrap().pretty_json {
+        true => Some(serde_json::to_string_pretty(&Words::from(response.into_inner())).unwrap()),
+        _ => Some(serde_json::to_string(&Words::from(response.into_inner())).unwrap()),
+    }
 }
 
 #[get("/words")]
-async fn words_default() -> Option<Value> {
-    let opt = Options{ count: 8, signed: false };
+async fn words_default() -> Option<String> {
+    let opt = Options{ count: 4, signed: false };
     words(opt).await
 }
 
 #[post("/sign", data = "<words>")]
-async fn sign_words(words: Json<Words>) -> Option<Value> {
-    let client = SignWordsClient::connect("http://signing-svc:9090").await;
-    let mut client = match client {
-        Ok(client) => client,
+async fn sign_words(words: Json<Words>) -> Option<String> {
+    let channel = match Channel::from_static(&CONFIG.get().unwrap().sign_svc_addr).connect().await {
+        Ok(channel) => channel,
         Err(e) => {
-            error!("Failed to create SignWords client: {}", e);
+            error!("Failed to create SignWords channel: {}", e);
             return None
         },
     };
+
+    let timeout_channel = Timeout::new(channel, Duration::from_millis(500));
+    let mut client = SignWordsClient::new(timeout_channel);
 
     let v = &words.words;
     let request = tonic::Request::new(SignRequest {
         words: v.to_vec(),
     });
 
-    let response = client.sign_words(request).await;
-    let response = match response {
+    let response = match client.sign_words(request).await {
         Ok(response) => response,
         Err(e) => {
             error!("Failed to call SignWords service: {}", e);
@@ -93,12 +110,23 @@ async fn sign_words(words: Json<Words>) -> Option<Value> {
         },
     };
 
-    Some(json!(Words::from(response.into_inner())))
+    match CONFIG.get().unwrap().pretty_json {
+        true => Some(serde_json::to_string_pretty(&Words::from(response.into_inner())).unwrap()),
+        _ => Some(serde_json::to_string(&Words::from(response.into_inner())).unwrap()),
+    }
 }
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![sign_words, words_default, words, index])
+    let rocket = rocket::build().mount("/", routes![sign_words, words_default, words, index]);
+    let figment = rocket.figment();
+    let config = Config {
+        words_svc_addr: figment.extract_inner("words-svc-addr").expect("words-svc-addr"),
+        sign_svc_addr: figment.extract_inner("sign-svc-addr").expect("signs-svc-addr"),
+        pretty_json: figment.extract_inner("pretty-json").expect("pretty-json"),
+    };
+    CONFIG.set(config).unwrap();
+    rocket
 }
 
 impl Words {
