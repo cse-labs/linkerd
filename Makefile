@@ -3,17 +3,12 @@
 help :
 	@echo "Usage:"
 	@echo "   make all              - create a cluster and deploy the apps"
-	@echo "   make create           - create a kind cluster"
-	@echo "   make delete           - delete the kind cluster"
-	@echo "   make deploy           - deploy the apps to the cluster"
-	@echo "   make check            - check the endpoints with curl"
-	@echo "   make test             - run a WebValidate test"
-	@echo "   make load-test        - run a 60 second WebValidate test"
-	@echo "   make clean            - delete the apps from the cluster"
+	@echo "   make create           - create a k3d cluster with linkerd"
+	@echo "   make check            - check the cluster"
+	@echo "   make delete           - delete the k3d cluster"
 	@echo "   make app              - build and deploy a local app docker image"
-	@echo "   make webv             - build and deploy a local WebV docker image"
-	@echo "   make reset-prometheus - reset the Prometheus volume (existing data is deleted)"
-	@echo "   make reset-grafana    - reset the Grafana volume (existing data is deleted)"
+	@echo "   make deploy           - deploy the apps to the cluster"
+	@echo "   make undeploy         - delete the apps from the cluster"
 	@echo "   make jumpbox          - deploy a 'jumpbox' pod"
 
 all : delete create check app deploy
@@ -80,46 +75,13 @@ app :
 deploy :
 	# build the local image and load into k3d
 	@kubectl create -f deploy/app/pickle.yaml -n pickle
-	@kubectl wait node --for condition=ready --all --timeout=30s
+	@kubectl wait po -A --for condition=ready --all  --timeout=30s
 	@kubectl get -n pickle deploy -o yaml | linkerd inject - | kubectl apply -f -
 	# Use: linkerd viz dashboard &
 	# to view the linkerd dashboard
 
 undeploy :
 	@kubectl delete namespace pickle
-
-webv :
-	# build the local image and load into k3d
-	docker build ../../webvalidate -t webv:local
-	
-	k3d image import webv:local
-
-	# display current version
-	-http localhost:30088/version
-
-	# display the current version
-	@http localhost:30088/version
-
-test :
-	# run a single test
-	webv --verbose --server http://localhost:30080 --files ../webv/benchmark.json
-
-load-test :
-	# use WebValidate to run a 60 second test
-	webv --verbose --server http://localhost:30080 --files ../webv/benchmark.json --run-loop --sleep 100 --duration 60
-
-reset-prometheus :
-	# remove and create the /prometheus volume
-	@sudo rm -rf /prometheus
-	@sudo mkdir -p /prometheus
-	@sudo chown -R 65534:65534 /prometheus
-
-reset-grafana :
-	# remove and copy the data to /grafana volume
-	@sudo rm -rf /grafana
-	@sudo mkdir -p /grafana
-	@sudo cp -R ../deploy/grafanadata/grafana.db /grafana
-	@sudo chown -R 472:472 /grafana
 
 jumpbox :
 	@# start a jumpbox pod
@@ -129,8 +91,3 @@ jumpbox :
 	@kubectl wait pod jumpbox --for condition=ready --timeout=30s
 	@kubectl exec jumpbox -- /bin/sh -c "apk update && apk add bash curl httpie" > /dev/null
 	@kubectl exec jumpbox -- /bin/sh -c "echo \"alias ls='ls --color=auto'\" >> /root/.profile && echo \"alias ll='ls -lF'\" >> /root/.profile && echo \"alias la='ls -alF'\" >> /root/.profile && echo 'cd /root' >> /root/.profile" > /dev/null
-
-	#
-	# use kje <command>
-	# kje http ngsa-memory:8080/version
-	# kje bash -l
