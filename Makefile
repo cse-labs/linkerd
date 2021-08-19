@@ -13,6 +13,8 @@ help :
 
 all : delete create check app deploy
 
+loop : app undeploy deploy
+
 delete :
 	# delete the cluster (if exists)
 	@# this will fail harmlessly if the cluster does not exist
