@@ -43,7 +43,7 @@ fn index() -> Html<&'static str> {
 }
 
 #[openapi]
-#[get("/words?<count>&<signed>", format = "json")]
+#[get("/words?<count>&<signed>")]
 async fn words(count: Option<u8>, signed: bool) -> Option<Json<Words>>  {
     let channel = match Channel::from_static(&CONFIG.get().unwrap().words_svc_addr).connect().await {
         Ok(channel) => channel,
@@ -78,7 +78,7 @@ async fn words(count: Option<u8>, signed: bool) -> Option<Json<Words>>  {
 }
 
 #[openapi]
-#[post("/sign", format = "json", data = "<words>")]
+#[post("/sign", data = "<words>")]
 async fn sign_words(words: Json<Words>) -> Option<Json<Words>> {
     let channel = match Channel::from_static(&CONFIG.get().unwrap().sign_svc_addr).connect().await {
             Ok(channel) => channel,
