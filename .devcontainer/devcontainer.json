@@ -17,10 +17,7 @@
 
 	// forward ports for the app
 	"forwardPorts": [
-		30000,
-		30080,
 		30088,
-		32000
 	],
 
 	// add labels

@@ -1,25 +1,16 @@
-# Kubernetes Dev Cluster on Codespaces Template
+# Kubernetes linkerd, Rust, and grpc Codespace
 
-> Setup a Kubernetes Developer Cluster using `kind` or `k3d` running in [GitHub Codespaces](https://github.com/features/codespaces)
+Inner loop Kubernetes development, using `k3d` running in [GitHub Codespaces](https://github.com/features/codespaces), created from [Kubernetes Dev Cluster on Codespaces Template](https://github.com/retaildevcrews/kind-k3d-codespaces-template)
 
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-> [GitHub Codespaces](https://github.com/features/codespaces) is currently in `limited public beta`
-
 ## Overview
 
-This is a template that will setup a Kubernetes developer cluster using `Kind` or `K3d` in a `GitHub Codespace` or local `Dev Container`
+This project sets up a Kubernetes developer cluster using `K3d` with linkerd in a `GitHub Codespace` or local `Dev Container`.
 
 We use this for `inner-loop` Kubernetes development. Note that it is not appropriate for production use (but is a great `Developer Experience`)
 
 > This Codespace is tested with `zsh` and `oh-my-zsh` - it "should" work with bash ...
-
-## Create your repo
-
-Create your repo from this template and add your application code
-
-- Click the `Use this template` button
-- Enter your repo details
 
 ## Open with Codespaces
 
@@ -27,12 +18,6 @@ Create your repo from this template and add your application code
 - Click `Open with Codespaces`
 - Click `New Codespace`
 - Choose the `4 core` or `8 core` option
-
-![Create Codespace](./images/OpenWithCodespaces.jpg)
-
-## Open Workspace
-
-- When prompted, choose `Open Workspace`
 
 ## Build and Deploy Cluster
 
@@ -49,35 +34,6 @@ By default the solution will create a `kind` cluster. If you want to use [k3d](h
   ```
 
 ![Running Codespace](./images/RunningCodespace.png)
-
-## Validate Deployment
-
-Output from `make all` should resemble this
-
-```text
-
-default      fluentb                                   1/1   Running   0   31s
-default      jumpbox                                   1/1   Running   0   25s
-default      webv                                      1/1   Running   0   31s
-default      ngsa-memory                               1/1   Running   0   33s
-monitoring   grafana-64f7dbcf96-cfmtd                  1/1   Running   0   32s
-monitoring   prometheus-deployment-67cbf97f84-tjxm7    1/1   Running   0   32s
-
-```
-
-## Service endpoints
-
-- All endpoints are usable in your browser via clicking on the `Ports (4)` tab
-  - Select the `open in browser icon` on the far right
-- Some popup blockers block the new browser tab
-- If you get a gateway error, just hit refresh - it will clear once the port-forward is ready
-
-```bash
-
-# check endpoints
-make check
-
-```
 
 ## Validate deployment with k9s
 
@@ -121,61 +77,6 @@ A `jump box` pod is created so that you can execute commands `in the cluster`
   - run http against the ClusterIP
     - `kje http ngsa-memory:8080/version`
 
-## View Prometheus Dashboard
-
-- Click on the `ports` tab of the terminal window
-- Click on the `open in browser icon` on the Prometheus port (30000)
-- This will open Prometheus in a new browser tab
-
-- From the Prometheus tab
-  - Begin typing NgsaAppDuration_bucket in the `Expression` search
-  - Click `Execute`
-  - This will display the `histogram` that Grafana uses for the charts
-
-## Launch Grafana Dashboard
-
-- Grafana login info
-  - admin
-  - akdc-512
-
-- Once `make all` completes successfully
-  - Click on the `ports` tab of the terminal window
-  - Click on the `open in browser icon` on the Grafana port (32000)
-  - This will open Grafana in a new browser tab
-
-![Codespace Ports](./images/CodespacePorts.jpg)
-
-## View Grafana Dashboard
-
-- Click on `Home` at the top of the page
-- From the dashboards page, click on `NGSA`
-
-![Grafana](./images/Grafana.jpg)
-
-## Run a load test
-
-```bash
-
-# from Codespaces terminal
-
-# run a baseline test (will generate warnings in Grafana)
-make test
-
-# run a 60 second load test
-make load-test
-
-```
-
-- Switch to the Grafana brower tab
-- The test will generate 400 / 404 results
-- The requests metric will go from green to yellow to red as load increases
-  - It may skip yellow
-- As the test completes
-  - The metric will go back to green (1.0)
-  - The request graph will return to normal
-
-![Load Test](./images/LoadTest.jpg)
-
 ## View Fluent Bit Logs
 
 - Start `k9s` from the Codespace terminal
@@ -185,61 +86,9 @@ make load-test
 - Press `w` to Toggle Wrap
 - Review logs that will be sent to Log Analytics when configured
 
-## Build and deploy a local version of WebValidate
-
-- Switch back to your Codespaces tab
-
-```bash
-
-# from Codespaces terminal
-
-# make and deploy a local version of WebV to k8s
-make webv
-
-```
-
-## Build and deploy a local version of ngsa-memory
-
-- Switch back to your Codespaces tab
-
-```bash
-
-# from Codespaces terminal
-
-# make and deploy a local version of ngsa-memory to k8s
-make app
-
-```
-
 ## Next Steps
 
 > [Makefile](./Makefile) is a good place to start exploring
-
-## FAQ
-
-- Why don't we use helm to deploy Kubernetes manifests?
-  - The target audience for this repository is app developers who are beginning their Kubernetes journey so we chose simplicity for the Developer Experience.
-  - In our daily work, we use Helm for deployments and it is installed in the `.devcontainer` should you want to use it.
-
-### Engineering Docs
-
-- Team Working [Agreement](.github/WorkingAgreement.md)
-- Team [Engineering Practices](.github/EngineeringPractices.md)
-- CSE Engineering Fundamentals [Playbook](https://github.com/Microsoft/code-with-engineering-playbook)
-
-## How to file issues and get help  
-
-This project uses GitHub Issues to track bugs and feature requests. Please search the existing issues before filing new issues to avoid duplicates. For new issues, file your bug or feature request as a new issue.
-
-For help and questions about using this project, please open a GitHub issue.
-
-## Contributing
-
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit <https://cla.opensource.microsoft.com>
-
-When you submit a pull request, a CLA bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
 ## Trademarks
 
