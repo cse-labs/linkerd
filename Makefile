@@ -67,11 +67,11 @@ clean :
 	@kubectl get po -A
 
 app :
-	docker build app/pickle -t pickle:local
+	docker build -f app/pickle.Dockerfile app -t pickle:local
 	k3d image import pickle:local
-	docker build app/depa -t pickle_depa:local
+	docker build -f app/depa.Dockerfile app -t pickle_depa:local
 	k3d image import pickle_depa:local
-	docker build app/depb -t pickle_depb:local
+	docker build -f app/depb.Dockerfile app -t pickle_depb:local
 	k3d image import pickle_depb:local
 
 deploy :

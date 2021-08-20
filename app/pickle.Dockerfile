@@ -13,21 +13,20 @@ RUN apt-get update && \
 
 # 1b: Download and compile Rust dependencies (and store as a separate Docker layer)
 RUN USER=root cargo new pickle
+COPY rust/dill ./dill
 WORKDIR /usr/src/pickle
-COPY *.toml ./
+COPY rust/pickle/Cargo.toml ./
 RUN cargo install --target x86_64-unknown-linux-musl --path .
 
 # 1c: Build the exe using the actual source code
-COPY src ./src
-COPY proto ./proto
-COPY build.rs .
+COPY rust/pickle/src ./src
 RUN ["touch", "src/main.rs"]
 RUN cargo install --target x86_64-unknown-linux-musl --path .
 
 # 2: Copy the exe to an empty Docker image
 FROM alpine:3.14
 COPY --from=builder /usr/local/cargo/bin/pickle .
-COPY Rocket.toml .
+COPY rust/pickle/Rocket.toml .
 ARG RUST_LOG=TRACE
 ENV RUST_LOG=$RUST_LOG
 EXPOSE 8000

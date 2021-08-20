@@ -1,10 +1,6 @@
-pub mod dill_rpc {
-    tonic::include_proto!("dill");
-}
-
-use dill_rpc::pick_words_server::{PickWords, PickWordsServer};
-use dill_rpc::sign_words_client::{SignWordsClient};
-use dill_rpc::{SignRequest, WordsRequest, WordsResponse};
+use dill::dill::pick_words_server::{PickWords, PickWordsServer};
+use dill::dill::sign_words_client::{SignWordsClient};
+use dill::dill::{SignRequest, WordsRequest, WordsResponse};
 use futures::FutureExt;
 use log::{error, info};
 use names::Generator;

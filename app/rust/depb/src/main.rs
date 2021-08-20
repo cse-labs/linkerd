@@ -1,10 +1,6 @@
-pub mod dill_rpc {
-    tonic::include_proto!("dill");
-}
-
 use base64::encode;
-use dill_rpc::sign_words_server::{SignWords, SignWordsServer};
-use dill_rpc::{SignRequest, WordsResponse};
+use dill::dill::sign_words_server::{SignWords, SignWordsServer};
+use dill::dill::{SignRequest, WordsResponse};
 use futures::FutureExt;
 use log::{error, info};
 use openssl::sign::Signer;
