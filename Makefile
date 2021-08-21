@@ -63,7 +63,9 @@ check :
 
 app :
 	cd app; docker-compose build
-	k3d image import pickle:local pickle_words:local pickle_signer:local
+	k3d image import -t pickle:local
+	k3d image import -t pickle_words:local
+	k3d image import -t pickle_signer:local
 
 deploy :
 	# build the local image and load into k3d
@@ -88,24 +90,23 @@ jumpbox :
 
 pull :
 	# linkerd-related images don't always pull from the cluster
-	docker pull cr.l5d.io/linkerd/controller:stable-2.10.2
-	docker pull cr.l5d.io/linkerd/grafana:stable-2.10.2
-	docker pull cr.l5d.io/linkerd/metrics-api:stable-2.10.2
-	docker pull cr.l5d.io/linkerd/proxy:stable-2.10.2
-	docker pull cr.l5d.io/linkerd/proxy-init:v1.3.11
-	docker pull cr.l5d.io/linkerd/tap:stable-2.10.2
-	docker pull cr.l5d.io/linkerd/web:stable-2.10.2
-	docker pull prom/prometheus:v2.19.3
+	@docker pull cr.l5d.io/linkerd/controller:stable-2.10.2
+	@docker pull cr.l5d.io/linkerd/grafana:stable-2.10.2
+	@docker pull cr.l5d.io/linkerd/metrics-api:stable-2.10.2
+	@docker pull cr.l5d.io/linkerd/proxy:stable-2.10.2
+	@docker pull cr.l5d.io/linkerd/proxy-init:v1.3.11
+	@docker pull cr.l5d.io/linkerd/tap:stable-2.10.2
+	@docker pull cr.l5d.io/linkerd/web:stable-2.10.2
+	@docker pull prom/prometheus:v2.19.3
 	
 
 prime :
 	# linkerd-related images don't always pull from the cluster
-	@k3d image import \
-		cr.l5d.io/linkerd/controller:stable-2.10.2 \
-		cr.l5d.io/linkerd/grafana:stable-2.10.2 \
-		cr.l5d.io/linkerd/metrics-api:stable-2.10.2 \
-		cr.l5d.io/linkerd/proxy:stable-2.10.2 \
-		cr.l5d.io/linkerd/proxy-init:v1.3.11 \
-		cr.l5d.io/linkerd/tap:stable-2.10.2 \
-		cr.l5d.io/linkerd/web:stable-2.10.2 \
-		prom/prometheus:v2.19.3
+	@k3d image import -t cr.l5d.io/linkerd/controller:stable-2.10.2
+	@k3d image import -t cr.l5d.io/linkerd/grafana:stable-2.10.2
+	@k3d image import -t cr.l5d.io/linkerd/metrics-api:stable-2.10.2
+	@k3d image import -t cr.l5d.io/linkerd/proxy:stable-2.10.2
+	@k3d image import -t cr.l5d.io/linkerd/proxy-init:v1.3.11
+	@k3d image import -t cr.l5d.io/linkerd/tap:stable-2.10.2
+	@k3d image import -t cr.l5d.io/linkerd/web:stable-2.10.2
+	@k3d image import -t prom/prometheus:v2.19.3
