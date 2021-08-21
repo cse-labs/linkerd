@@ -62,10 +62,10 @@ check :
 	@kubectl get po -A
 
 app :
-	cd app; docker-compose build
-	k3d image import -t pickle:local
-	k3d image import -t pickle_words:local
-	k3d image import -t pickle_signer:local
+	@cd app; docker-compose build
+	@k3d image import -t pickle:local
+	@k3d image import -t pickle_words:local
+	@k3d image import -t pickle_signer:local
 
 deploy :
 	# build the local image and load into k3d
