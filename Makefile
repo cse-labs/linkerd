@@ -3,13 +3,17 @@
 help :
 	@echo "Usage:"
 	@echo "   make all              - create a cluster and deploy the apps"
+	@echo "   make loop             - inner loop that builds and deploys the app"
 	@echo "   make create           - create a k3d cluster with linkerd"
-	@echo "   make check            - check the cluster"
+	@echo "   make setup            - setup linkerd and fluentbit"
+	@echo "   make check            - check the cluster, including linkerd"
 	@echo "   make delete           - delete the k3d cluster"
-	@echo "   make app              - build and deploy a local app docker image"
-	@echo "   make deploy           - deploy the apps to the cluster"
-	@echo "   make undeploy         - delete the apps from the cluster"
+	@echo "   make app              - build and push local app docker image"
+	@echo "   make deploy           - deploy the app to the cluster"
+	@echo "   make undeploy         - delete the app from the cluster"
 	@echo "   make jumpbox          - deploy a 'jumpbox' pod"
+	@echo "   make pull             - pull linkerd images, because the k3s cluster fails to pull them"
+	@echo "   make prime            - import linkerd images into the cluster"
 
 all : delete create setup check app deploy
 
