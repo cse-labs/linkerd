@@ -44,8 +44,8 @@ setup :
 	@linkerd jaeger install | kubectl apply -f - # Jaeger collector and UI
 
 	# deploy fluent bit
-	-kubectl create secret generic log-secrets --from-literal=WorkspaceId=dev --from-literal=SharedKey=dev -n fluentbit
 	-kubectl apply -f deploy/fluentbit/fluentbit.yaml
+	-kubectl create secret generic log-secrets --from-literal=WorkspaceId=dev --from-literal=SharedKey=dev -n fluentbit
 	-kubectl apply -f deploy/fluentbit/stdout-config.yaml
 	-kubectl apply -f deploy/fluentbit/fluentbit-pod.yaml
 
