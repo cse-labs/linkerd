@@ -115,7 +115,7 @@ spec:
         version: v11
     spec:
       containers:
-      - image: pickle_depa:local
+      - image: pickle_words:local
         name: words-svc
         env:
         - name: RUST_LOG
@@ -147,7 +147,7 @@ spec:
         version: v11
     spec:
       containers:
-      - image: pickle_depb:local
+      - image: pickle_signer:local
         name: signing-svc
         env:
         - name: RUST_LOG

@@ -1,14 +1,17 @@
 version: "3.9"
 services:
   pickle:
+    image: pickle:local
     build:
       context: .
       dockerfile: pickle.Dockerfile
   depa:
+    image: pickle_words:local
     build:
       context: .
-      dockerfile: depa.Dockerfile
+      dockerfile: words.Dockerfile
   depb:
+    image: pickle_signer:local
     build:
       context: .
-      dockerfile: depb.Dockerfile
+      dockerfile: signer.Dockerfile
