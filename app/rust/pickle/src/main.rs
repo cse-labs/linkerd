@@ -1,12 +1,8 @@
-pub mod dill_rpc {
-    tonic::include_proto!("dill");
-}
-
 #[macro_use] extern crate rocket;
 
-use dill_rpc::pick_words_client::{PickWordsClient};
-use dill_rpc::sign_words_client::{SignWordsClient};
-use dill_rpc::{SignRequest, WordsRequest, WordsResponse};
+use dill::dill::pick_words_client::{PickWordsClient};
+use dill::dill::sign_words_client::{SignWordsClient};
+use dill::dill::{SignRequest, WordsRequest, WordsResponse};
 use log::error;
 use once_cell::sync::OnceCell;
 use rocket::get;
@@ -43,7 +39,7 @@ fn index() -> Html<&'static str> {
 }
 
 #[openapi]
-#[get("/words?<count>&<signed>", format = "json")]
+#[get("/words?<count>&<signed>")]
 async fn words(count: Option<u8>, signed: bool) -> Option<Json<Words>>  {
     let channel = match Channel::from_static(&CONFIG.get().unwrap().words_svc_addr).connect().await {
         Ok(channel) => channel,
@@ -78,7 +74,7 @@ async fn words(count: Option<u8>, signed: bool) -> Option<Json<Words>>  {
 }
 
 #[openapi]
-#[post("/sign", format = "json", data = "<words>")]
+#[post("/sign", data = "<words>")]
 async fn sign_words(words: Json<Words>) -> Option<Json<Words>> {
     let channel = match Channel::from_static(&CONFIG.get().unwrap().sign_svc_addr).connect().await {
             Ok(channel) => channel,

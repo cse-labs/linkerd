@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: fluentb
-  namespace: default
+  namespace: fluentbit
   labels:
     app: fluentb
 spec:

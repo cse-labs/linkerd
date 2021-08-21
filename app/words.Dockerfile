@@ -12,23 +12,24 @@ RUN apt-get update && \
     rustup component add rustfmt
 
 # 1b: Download and compile Rust dependencies (and store as a separate Docker layer)
-RUN USER=root cargo new pickle
-WORKDIR /usr/src/pickle
-COPY *.toml ./
+RUN USER=root cargo new words
+COPY rust/dill ./dill
+WORKDIR /usr/src/words
+COPY rust/words/Cargo.toml ./
 RUN cargo install --target x86_64-unknown-linux-musl --path .
 
 # 1c: Build the exe using the actual source code
-COPY src ./src
-COPY proto ./proto
-COPY build.rs .
+COPY rust/words/src ./src
 RUN ["touch", "src/main.rs"]
 RUN cargo install --target x86_64-unknown-linux-musl --path .
 
 # 2: Copy the exe to an empty Docker image
 FROM alpine:3.14
-COPY --from=builder /usr/local/cargo/bin/pickle .
-COPY Rocket.toml .
+COPY --from=builder /usr/local/cargo/bin/pickle_words .
+ARG WORD_GRPC_PORT=9090
+ENV WORD_GRPC_PORT=$WORD_GRPC_PORT
+ARG SIGN_SVC_ADDR=http://signing-svc:9090
+ENV SIGN_SVC_ADDR=$SIGN_SVC_ADDR
 ARG RUST_LOG=TRACE
 ENV RUST_LOG=$RUST_LOG
-EXPOSE 8000
-CMD ["./pickle"]
+CMD ./pickle_words --port $WORD_GRPC_PORT --sign-svc-addr $SIGN_SVC_ADDR
