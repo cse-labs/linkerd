@@ -12,7 +12,7 @@ spec:
 
     securityContext:
       seccompProfile:
-        type: Runtimefluentbit
+        type: RuntimeDefault
 
     containers:
     - name: fluent-bit

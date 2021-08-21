@@ -41,11 +41,9 @@ setup :
 
 	# deploy fluent bit
 	-kubectl create secret generic log-secrets --from-literal=WorkspaceId=dev --from-literal=SharedKey=dev
-	-kubectl create -f deploy/fluentbit/namespace.yaml
-	-kubectl create -f deploy/fluentbit/account.yaml
-	-kubectl create -f deploy/fluentbit/log.yaml
-	-kubectl create -f deploy/fluentbit/stdout-config.yaml
-	-kubectl create -f deploy/fluentbit/fluentbit-pod.yaml
+	-kubectl apply -f deploy/fluentbit/fluentbit.yaml
+	-kubectl apply -f deploy/fluentbit/stdout-config.yaml
+	-kubectl apply -f deploy/fluentbit/fluentbit-pod.yaml
 
 	# wait for the pods to start
 	@kubectl wait po -A --for condition=ready --all --timeout=60s
