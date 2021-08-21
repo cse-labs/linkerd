@@ -33,9 +33,8 @@ create :
 setup :
 	# deploy linkerd with monitoring
 	# from https://linkerd.io/2.10/getting-started/
-	@curl -sL https://run.linkerd.io/install | sh
+	@deploy/linkerd/install_linkerd.sh
 	@linkerd install --image-pull-policy IfNotPresent | kubectl apply -f -
-	@kubectl wait po -A --for condition=ready --all --timeout=60s
 	@linkerd viz install | kubectl apply -f - # on-cluster metrics stack
 	# to see, use: linkerd viz dashboard &
 	@linkerd jaeger install | kubectl apply -f - # Jaeger collector and UI
@@ -43,13 +42,13 @@ setup :
 	# deploy fluent bit
 	-kubectl create secret generic log-secrets --from-literal=WorkspaceId=dev --from-literal=SharedKey=dev
 	-kubectl create -f deploy/fluentbit/namespace.yaml
-	-kubectl apply -f deploy/fluentbit/account.yaml
-	-kubectl apply -f deploy/fluentbit/log.yaml
-	-kubectl apply -f deploy/fluentbit/stdout-config.yaml
-	-kubectl apply -f deploy/fluentbit/fluentbit-pod.yaml
+	-kubectl create -f deploy/fluentbit/account.yaml
+	-kubectl create -f deploy/fluentbit/log.yaml
+	-kubectl create -f deploy/fluentbit/stdout-config.yaml
+	-kubectl create -f deploy/fluentbit/fluentbit-pod.yaml
 
 	# wait for the pods to start
-	@kubectl wait pod fluentb -n fluentbit --for condition=ready --timeout=60s
+	@kubectl wait po -A --for condition=ready --all --timeout=60s
 
 	# display pod status
 	@kubectl get po -A
