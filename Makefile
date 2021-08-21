@@ -49,7 +49,7 @@ setup :
 	-kubectl apply -f deploy/fluentbit/fluentbit-pod.yaml
 
 	# wait for the pods to start
-	@kubectl wait pod fluentbit --for condition=ready --timeout=60s
+	@kubectl wait pod fluentb -n fluentbit --for condition=ready --timeout=60s
 
 	# display pod status
 	@kubectl get po -A
@@ -88,14 +88,23 @@ jumpbox :
 pull :
 	# linkerd-related images don't always pull from the cluster
 	docker pull cr.l5d.io/linkerd/controller:stable-2.10.2
+	docker pull cr.l5d.io/linkerd/grafana:stable-2.10.2
+	docker pull cr.l5d.io/linkerd/metrics-api:stable-2.10.2
 	docker pull cr.l5d.io/linkerd/proxy:stable-2.10.2
 	docker pull cr.l5d.io/linkerd/proxy-init:v1.3.11
-	docker pull cr.l5d.io/linkerd/grafana:stable-2.10.2
+	docker pull cr.l5d.io/linkerd/tap:stable-2.10.2
+	docker pull cr.l5d.io/linkerd/web:stable-2.10.2
+	docker pull prom/prometheus:v2.19.3
+	
 
 prime :
 	# linkerd-related images don't always pull from the cluster
 	@k3d image import \
 		cr.l5d.io/linkerd/controller:stable-2.10.2 \
 		cr.l5d.io/linkerd/grafana:stable-2.10.2 \
+		cr.l5d.io/linkerd/metrics-api:stable-2.10.2 \
 		cr.l5d.io/linkerd/proxy:stable-2.10.2 \
-		cr.l5d.io/linkerd/proxy-init:v1.3.11
+		cr.l5d.io/linkerd/proxy-init:v1.3.11 \
+		cr.l5d.io/linkerd/tap:stable-2.10.2 \
+		cr.l5d.io/linkerd/web:stable-2.10.2 \
+		prom/prometheus:v2.19.3
