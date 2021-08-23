@@ -1,0 +1,14 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: pickle
+  namespace: pickle
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Path(`/*`)
+      kind: Rule
+      services:
+        - name: web-svc
+          port: 80
