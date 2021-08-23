@@ -5,6 +5,8 @@ use dill::dill::sign_words_client::{SignWordsClient};
 use dill::dill::{SignRequest, WordsRequest, WordsResponse};
 use log::error;
 use once_cell::sync::OnceCell;
+use opentelemetry::global;
+use opentelemetry::trace::noop::NoopTracerProvider;
 use rocket::get;
 use rocket::response::content::Html;
 use rocket::serde::{Deserialize, Serialize, json::Json};
@@ -111,6 +113,19 @@ fn get_docs() -> SwaggerUIConfig {
 
 #[launch]
 fn rocket() -> _ {
+    global::set_text_map_propagator(b3::Propagator::new());
+    match opentelemetry_jaeger::new_pipeline()
+            .with_service_name("pickle")
+            .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
+            .build_simple() {
+            //.build_batch(opentelemetry::runtime::Tokio) {
+        Ok(provider) => global::set_tracer_provider(provider),
+        Err(e) =>  {
+            error!("Failed to setup tracer: {}", e);
+             global::set_tracer_provider(NoopTracerProvider::new())
+        },
+    };
+
     let rocket = rocket::build()
         .mount("/", routes_with_openapi![index])
         .mount("/api/v1.0", routes_with_openapi![sign_words, words])

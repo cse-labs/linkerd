@@ -1,7 +1,8 @@
 [workspace]
 members = [
-    "words",
-    "signer",
+    "b3",
+    "dill",
     "pickle",
-    "dill"
+    "signer",
+    "words",
 ]

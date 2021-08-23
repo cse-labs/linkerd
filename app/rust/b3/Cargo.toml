@@ -1,0 +1,9 @@
+[package]
+name = "b3"
+version = "0.1.0"
+authors = ["Dan Massey <danmass@microsoft.com>"]
+edition = "2018"
+
+[dependencies]
+lazy_static = "1.4"
+opentelemetry = "0.16"
