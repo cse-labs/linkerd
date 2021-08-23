@@ -3,17 +3,19 @@ additionalArguments:
  - "--tracing.jaeger.gen128Bit=true"
  - "--tracing.jaeger.propagation=b3"
  - "--tracing.jaeger.traceContextHeaderName=uber-trace-id"
- - "--tracing.jaeger.collector.endpoint=http://collector.linkerd-jaeger:55678/api/traces"
+ - "--tracing.jaeger.collector.endpoint=http://collector.linkerd-jaeger:55678"
  - "--tracing.jaeger.collector.user=collector"
 metadata:
   annotations:
     linkerd.io/inject: ingress
-entryPoints:
-  web:
-   address: ":80"
-http:
-  routers:
-    my-router:
-      rule: "Path(`/pickle`)"
-      service: web
-      port: 30088
+    config.linkerd.io/trace-collector: collector.linkerd-jaeger:55678
+    config.alpha.linkerd.io/trace-collector-service-account: collector
+spec:
+  entryPoints:
+    web:
+      address: ":80"
+  http:
+    routers:
+      pickle-router:
+        rule: "Path(`/pickle`)"
+        service: web-svc
