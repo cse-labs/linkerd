@@ -74,6 +74,7 @@ deploy :
 	# build the local image and load into k3d
 	@kubectl apply -f deploy/app/pickle.yaml -n pickle
 	-helm install traefik traefik/traefik -n pickle -f ./deploy/traefik/traefik_values.yaml
+	-kubectl apply -f deploy/app/pickle_ingress.yaml
 
 undeploy :
 	@kubectl delete namespace pickle
