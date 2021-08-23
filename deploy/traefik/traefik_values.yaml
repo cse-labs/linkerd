@@ -19,8 +19,10 @@ kubernetes:
     entryPoints:
       web:
         address: ":80"
-    http:
-      routers:
-        pickle-router:
-          rule: "Path(`/pickle`)"
-          service: web-svc
+    rules:
+    - http:
+        paths:
+        - backend:
+            serviceName: web-svc
+            servicePort: 80
+          path: /
