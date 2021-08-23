@@ -50,7 +50,7 @@ setup :
 	-kubectl apply -f deploy/fluentbit/fluentbit-pod.yaml
 
 	-helm repo add traefik https://helm.traefik.io/traefik
-	-help repo update
+	-helm repo update
 
 	# wait for the pods to start
 	@kubectl wait po -A --for condition=ready --all --timeout=60s
