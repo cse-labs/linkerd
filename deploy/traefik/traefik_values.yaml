@@ -5,6 +5,14 @@ additionalArguments:
  - "--tracing.jaeger.traceContextHeaderName=uber-trace-id"
  - "--tracing.jaeger.collector.endpoint=http://collector.linkerd-jaeger:55678"
  - "--tracing.jaeger.collector.user=collector"
+---
+providers:
+  kubernetesCRD:
+    namespaces:
+      - pickle
+  kubernetesIngress:
+    namespaces:
+      - pickle
 dashboard:
   enabled: true
 kubernetes:
