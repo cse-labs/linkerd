@@ -1,3 +1,22 @@
+ingressClass:
+  enabled: true
+
+providers:
+  kubernetesCRD:
+    namespaces:
+      - default
+      - pickle
+  kubernetesIngress:
+    namespaces:
+      - default
+      - pickle
+
+deployment:
+    annotations:
+      linkerd.io/inject: ingress
+      config.linkerd.io/trace-collector: collector.linkerd-jaeger:55678
+      config.alpha.linkerd.io/trace-collector-service-account: collector
+
 additionalArguments:
  - "--tracing.jaeger=true"
  - "--tracing.jaeger.gen128Bit=true"
@@ -5,32 +24,3 @@ additionalArguments:
  - "--tracing.jaeger.traceContextHeaderName=uber-trace-id"
  - "--tracing.jaeger.collector.endpoint=http://collector.linkerd-jaeger:55678"
  - "--tracing.jaeger.collector.user=collector"
----
-providers:
-  kubernetesCRD:
-    namespaces:
-      - pickle
-  kubernetesIngress:
-    namespaces:
-      - pickle
-dashboard:
-  enabled: true
-kubernetes:
-  namespaces:
-    - pickle
-  metadata:
-    annotations:
-      linkerd.io/inject: ingress
-      config.linkerd.io/trace-collector: collector.linkerd-jaeger:55678
-      config.alpha.linkerd.io/trace-collector-service-account: collector
-  spec:
-    entryPoints:
-      web:
-        address: ":80"
-    rules:
-    - http:
-        paths:
-        - backend:
-            serviceName: web-svc
-            servicePort: 80
-          path: /
