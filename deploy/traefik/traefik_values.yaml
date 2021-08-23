@@ -7,7 +7,6 @@ additionalArguments:
  - "--tracing.jaeger.collector.user=collector"
 dashboard:
   enabled: true
-  domain: traefik-ui.minikube
 kubernetes:
   namespaces:
     - pickle
