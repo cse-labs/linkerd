@@ -72,6 +72,8 @@ metadata:
     app.kubernetes.io/version: v11
   name: web
   namespace: pickle
+  annotations:
+    config.linkerd.io/trace-collector: enabled
 spec:
   replicas: 1
   selector:
@@ -104,6 +106,8 @@ metadata:
     app.kubernetes.io/version: v11
   name: words
   namespace: pickle
+  annotations:
+    config.linkerd.io/trace-collector: enabled
 spec:
   replicas: 1
   selector:
@@ -136,6 +140,8 @@ metadata:
     app.kubernetes.io/version: v11
   name: signing
   namespace: pickle
+  annotations:
+    config.linkerd.io/trace-collector: enabled
 spec:
   replicas: 1
   selector:

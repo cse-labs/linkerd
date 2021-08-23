@@ -69,7 +69,7 @@ app :
 
 deploy :
 	# build the local image and load into k3d
-	@kubectl create -f deploy/app/pickle.yaml -n pickle
+	@kubectl apply -f deploy/app/pickle.yaml -n pickle
 
 undeploy :
 	@kubectl delete namespace pickle
