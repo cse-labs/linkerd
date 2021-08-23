@@ -19,7 +19,7 @@ ports:
       - server[0]
   - port: 8080:80
     nodeFilters:
-      - svclb-traefik
+      - loadbalancer
 
 options:
   k3d:
