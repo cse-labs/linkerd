@@ -90,6 +90,12 @@ spec:
         env:
         - name: RUST_LOG
           value: "INFO"
+        - name: OTEL_PROPAGATORS
+          value: "b3,jaeger"
+        - name: OTEL_TRACES_EXPORTER
+          value: "jaeger"
+        - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+          value: "http://collector.linkerd-jaeger:55678"
         ports:
         - containerPort: 8000
           name: http
@@ -121,7 +127,13 @@ spec:
         name: words-svc
         env:
         - name: RUST_LOG
-          value: "INFO"
+          value: "DEBUG"
+        - name: OTEL_PROPAGATORS
+          value: "b3,jaeger"
+        - name: OTEL_TRACES_EXPORTER
+          value: "jaeger"
+        - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+          value: "http://collector.linkerd-jaeger:55678"
         ports:
         - containerPort: 9090
           name: grpc
@@ -154,4 +166,10 @@ spec:
         env:
         - name: RUST_LOG
           value: "INFO"
+        - name: OTEL_PROPAGATORS
+          value: "b3,jaeger"
+        - name: OTEL_TRACES_EXPORTER
+          value: "jaeger"
+        - name: OTEL_EXPORTER_JAEGER_ENDPOINT
+          value: "http://collector.linkerd-jaeger:55678"
       serviceAccountName: signer

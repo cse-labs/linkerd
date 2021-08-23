@@ -39,9 +39,9 @@ setup :
 	# from https://linkerd.io/2.10/getting-started/
 	@deploy/linkerd/install_linkerd.sh
 	@linkerd install --image-pull-policy IfNotPresent | kubectl apply -f -
-	@linkerd viz install | kubectl apply -f - # on-cluster metrics stack
-	# to see, use: linkerd viz dashboard &
 	@linkerd jaeger install | kubectl apply -f - # Jaeger collector and UI
+	@linkerd viz install --set jaegerUrl=jaeger.linkerd-jaeger:16686 | kubectl apply -f - # on-cluster metrics stack
+	# to see, use: linkerd viz dashboard &
 
 	# deploy fluent bit
 	-kubectl apply -f deploy/fluentbit/fluentbit.yaml
@@ -68,9 +68,7 @@ app :
 	@k3d image import -t pickle_signer:local
 
 deploy :
-	# build the local image and load into k3d
-	@kubectl create -f deploy/app/pickle.yaml -n pickle
-	@kubectl wait po -A --for condition=ready --all  --timeout=60s
+	@kubectl apply -f deploy/app/pickle.yaml -n pickle
 
 undeploy :
 	@kubectl delete namespace pickle

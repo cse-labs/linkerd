@@ -4,12 +4,17 @@ use dill::dill::{SignRequest, WordsRequest, WordsResponse};
 use futures::FutureExt;
 use log::{error, info};
 use names::Generator;
+use opentelemetry::{global, propagation::Injector};
+use opentelemetry::trace::noop::NoopTracerProvider;
 use rocket::serde::Deserialize;
 use std::time::Duration;
 use structopt::StructOpt;
 use tokio::{signal, sync::oneshot};
 use tonic::{transport::{Channel, Server}, Request, Response, Status};
 use tower::timeout::Timeout;
+use tracing::*;
+use tracing_futures::Instrument;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 #[derive(StructOpt, Deserialize)]
 struct Args {
@@ -23,9 +28,22 @@ struct Args {
     port: u16,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct MyPickWords {
     sign_svc_addr: String,
+}
+
+struct MetadataMap<'a>(&'a mut tonic::metadata::MetadataMap);
+
+impl<'a> Injector for MetadataMap<'a> {
+    /// Set a key and value in the MetadataMap.  Does nothing if the key or value are not valid inputs
+    fn set(&mut self, key: &str, value: String) {
+        if let Ok(key) = tonic::metadata::MetadataKey::from_bytes(key.as_bytes()) {
+            if let Ok(val) = tonic::metadata::MetadataValue::from_str(&value) {
+                self.0.insert(key, val);
+            }
+        }
+    }
 }
 
 fn generate_words(count: u32) -> Vec<String> {
@@ -48,6 +66,8 @@ fn generate_words(count: u32) -> Vec<String> {
 
 #[tonic::async_trait]
 impl PickWords for MyPickWords {
+
+    #[instrument]
     async fn get_words(&self, request: Request<WordsRequest>) -> Result<Response<WordsResponse>, Status> {
         let words_request = request.into_inner();
         let count = words_request.count.into();
@@ -58,7 +78,10 @@ impl PickWords for MyPickWords {
         match sign {
             true => {
                 let addr = self.sign_svc_addr.clone();
-                let channel = match Channel::from_shared(addr).unwrap().connect().await {
+                let channel = match Channel::from_shared(addr).unwrap()
+                        .connect()
+                        .instrument(info_span!("signer_client_connect"))
+                        .await {
                     Ok(channel) => channel,
                     Err(e) => {
                         error!("Failed to create SignWords channel: {}", e);
@@ -70,11 +93,18 @@ impl PickWords for MyPickWords {
                 let mut client = SignWordsClient::new(timeout_channel);
 
                 let v = &words;
-                let request = tonic::Request::new(SignRequest {
+                let mut request = tonic::Request::new(SignRequest {
                     words: v.to_vec(),
                 });
 
-                let response = client.sign_words(request).await;
+                global::get_text_map_propagator(|propagator| {
+                    propagator.inject_context(
+                        &tracing::Span::current().context(),
+                        &mut MetadataMap(request.metadata_mut()),
+                    )
+                });
+
+                let response = client.sign_words(request).instrument(info_span!("sign_words")).await;
                 match response {
                     Ok(response) => return Ok(response),
                     Err(e) => {
@@ -99,6 +129,20 @@ impl PickWords for MyPickWords {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     let args = Args::from_args();
+
+    global::set_text_map_propagator(opentelemetry_jaeger::Propagator::new());
+    match opentelemetry_jaeger::new_pipeline()
+            .with_service_name("words")
+            .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
+            .build_simple() {
+            //.build_batch(opentelemetry::runtime::Tokio) {
+        Ok(provider) => global::set_tracer_provider(provider),
+        Err(e) =>  {
+            error!("Failed to setup tracer: {}", e);
+             global::set_tracer_provider(NoopTracerProvider::new())
+        },
+    };
+
     info!("depa");
 
     let addr = format!("0.0.0.0:{}", args.port).parse()?;
@@ -124,6 +168,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     tx.send(()).unwrap();
     server.await.unwrap();
+    global::shutdown_tracer_provider();
     Ok(())
 }
 

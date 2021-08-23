@@ -5,6 +5,8 @@ use dill::dill::sign_words_client::{SignWordsClient};
 use dill::dill::{SignRequest, WordsRequest, WordsResponse};
 use log::error;
 use once_cell::sync::OnceCell;
+use opentelemetry::global;
+use opentelemetry::trace::noop::NoopTracerProvider;
 use rocket::get;
 use rocket::response::content::Html;
 use rocket::serde::{Deserialize, Serialize, json::Json};
@@ -13,6 +15,8 @@ use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
 use std::time::Duration;
 use tonic::transport::Channel;
 use tower::timeout::Timeout;
+use tracing::*;
+use tracing_futures::Instrument;
 
 #[derive(Debug)]
 struct Config {
@@ -40,8 +44,12 @@ fn index() -> Html<&'static str> {
 
 #[openapi]
 #[get("/words?<count>&<signed>")]
+#[instrument]
 async fn words(count: Option<u8>, signed: bool) -> Option<Json<Words>>  {
-    let channel = match Channel::from_static(&CONFIG.get().unwrap().words_svc_addr).connect().await {
+    let channel = match Channel::from_static(&CONFIG.get().unwrap().words_svc_addr)
+            .connect()
+            .instrument(info_span!("words_client_connect"))
+            .await {
         Ok(channel) => channel,
         Err(e) => {
             error!("Failed to create GetWords channel: {}", e);
@@ -62,7 +70,7 @@ async fn words(count: Option<u8>, signed: bool) -> Option<Json<Words>>  {
         signed: signed,
     });
 
-    let response = match client.get_words(request).await {
+    let response = match client.get_words(request).instrument(info_span!("get_words")).await {
         Ok(response) => response,
         Err(e) =>  {
             error!("Failed to call GetWords service: {}", e);
@@ -75,9 +83,13 @@ async fn words(count: Option<u8>, signed: bool) -> Option<Json<Words>>  {
 
 #[openapi]
 #[post("/sign", data = "<words>")]
+#[instrument]
 async fn sign_words(words: Json<Words>) -> Option<Json<Words>> {
-    let channel = match Channel::from_static(&CONFIG.get().unwrap().sign_svc_addr).connect().await {
-            Ok(channel) => channel,
+    let channel = match Channel::from_static(&CONFIG.get().unwrap().sign_svc_addr)
+            .connect()
+            .instrument(info_span!("signer_client_connect"))
+            .await {
+        Ok(channel) => channel,
         Err(e) => {
             error!("Failed to create GetWords channel: {}", e);
             return None
@@ -86,19 +98,20 @@ async fn sign_words(words: Json<Words>) -> Option<Json<Words>> {
 
     let timeout_channel = Timeout::new(channel, Duration::from_millis(500));
     let mut client = SignWordsClient::new(timeout_channel);
-
+ 
     let v = &words.words;
     let request = tonic::Request::new(SignRequest {
         words: v.to_vec(),
     });
 
-    let response = match client.sign_words(request).await {
+    let response = match client.sign_words(request).instrument(info_span!("sign_words")).await {
         Ok(response) => response,
         Err(e) =>  {
             error!("Failed to call GetWords service: {}", e);
             return None
         },
     };
+
 
     Some(Json(Words::from(response.into_inner())))
 }
@@ -109,8 +122,20 @@ fn get_docs() -> SwaggerUIConfig {
     }
 }
 
-#[launch]
-fn rocket() -> _ {
+#[rocket::main]
+async fn main() {
+    match opentelemetry_jaeger::new_pipeline()
+            .with_service_name("pickle")
+            .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
+            .build_simple() {
+            //.build_batch(opentelemetry::runtime::Tokio) {
+        Ok(provider) => global::set_tracer_provider(provider),
+        Err(e) =>  {
+            error!("Failed to setup tracer: {}", e);
+             global::set_tracer_provider(NoopTracerProvider::new())
+        },
+    };
+
     let rocket = rocket::build()
         .mount("/", routes_with_openapi![index])
         .mount("/api/v1.0", routes_with_openapi![sign_words, words])
@@ -121,7 +146,12 @@ fn rocket() -> _ {
         sign_svc_addr: figment.extract_inner("sign-svc-addr").expect("signs-svc-addr"),
     };
     CONFIG.set(config).unwrap();
-    rocket
+    match rocket.launch().await {
+        Ok(()) => (),
+        Err(_e) => (),
+    };
+
+    global::shutdown_tracer_provider();
 }
 
 impl Words {
