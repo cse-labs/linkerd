@@ -7,8 +7,6 @@ use openssl::sign::Signer;
 use openssl::rsa::Rsa;
 use openssl::pkey::{PKey, Private};
 use openssl::hash::MessageDigest;
-use opentelemetry::global;
-use opentelemetry::trace::noop::NoopTracerProvider;
 use rocket::serde::Deserialize;
 use std::convert::TryFrom;
 use std::fs::File;
@@ -17,7 +15,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use structopt::StructOpt;
 use tokio::{signal, sync::oneshot};
 use tonic::{transport::Server, Request, Response, Status};
-use tracing::*;
 
 #[derive(StructOpt, Deserialize)]
 struct Args {
@@ -27,15 +24,12 @@ struct Args {
     port: u16,
 }
 
-#[derive(Debug)]
 pub struct MySignWords {
     keypair: PKey<Private>,
 }
 
 #[tonic::async_trait]
 impl SignWords for MySignWords {
-
-    #[instrument]
     async fn sign_words(&self, request: Request<SignRequest>) -> Result<Response<WordsResponse>, Status> {
         
         let mut signer = Signer::new(MessageDigest::sha256(), &self.keypair).unwrap();
@@ -62,19 +56,6 @@ impl SignWords for MySignWords {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     let args = Args::from_args();
-
-    match opentelemetry_jaeger::new_pipeline()
-            .with_service_name("words")
-            .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
-            .build_simple() {
-            //.build_batch(opentelemetry::runtime::Tokio) {
-        Ok(provider) => global::set_tracer_provider(provider),
-        Err(e) =>  {
-            error!("Failed to setup tracer: {}", e);
-             global::set_tracer_provider(NoopTracerProvider::new())
-        },
-    };
-
     info!("depb");
 
     let addr = format!("0.0.0.0:{}", args.port).parse()?;
@@ -106,6 +87,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     tx.send(()).unwrap();
     server.await.unwrap();
-    global::shutdown_tracer_provider();
     Ok(())
 }

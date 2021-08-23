@@ -11,8 +11,6 @@ env_logger = "0.9.0"
 futures = "0.3"
 log = "0.4.14"
 openssl = { version = "0.10", features = ["vendored"] }
-opentelemetry = { version = "0.16", features = ["rt-tokio"] }
-opentelemetry-jaeger = { version = "0.15", features = ["collector_client", "rt-tokio"] }
 prost = "0.8"
 prost-types = "0.8"
 rocket = "0.5.0-rc.1"
@@ -21,6 +19,3 @@ serde_derive = "1.0"
 structopt = "0.3"
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "signal"] }
 tonic = "0.5.2"
-tracing = "0.1"
-tracing-opentelemetry = "0.15"
-tracing-futures = "0.2"
