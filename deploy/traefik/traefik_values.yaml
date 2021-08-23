@@ -5,17 +5,23 @@ additionalArguments:
  - "--tracing.jaeger.traceContextHeaderName=uber-trace-id"
  - "--tracing.jaeger.collector.endpoint=http://collector.linkerd-jaeger:55678"
  - "--tracing.jaeger.collector.user=collector"
-metadata:
-  annotations:
-    linkerd.io/inject: ingress
-    config.linkerd.io/trace-collector: collector.linkerd-jaeger:55678
-    config.alpha.linkerd.io/trace-collector-service-account: collector
-spec:
-  entryPoints:
-    web:
-      address: ":80"
-  http:
-    routers:
-      pickle-router:
-        rule: "Path(`/pickle`)"
-        service: web-svc
+dashboard:
+  enabled: true
+  domain: traefik-ui.minikube
+kubernetes:
+  namespaces:
+    - pickle
+  metadata:
+    annotations:
+      linkerd.io/inject: ingress
+      config.linkerd.io/trace-collector: collector.linkerd-jaeger:55678
+      config.alpha.linkerd.io/trace-collector-service-account: collector
+  spec:
+    entryPoints:
+      web:
+        address: ":80"
+    http:
+      routers:
+        pickle-router:
+          rule: "Path(`/pickle`)"
+          service: web-svc
