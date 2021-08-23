@@ -49,6 +49,9 @@ setup :
 	-kubectl apply -f deploy/fluentbit/stdout-config.yaml
 	-kubectl apply -f deploy/fluentbit/fluentbit-pod.yaml
 
+	-helm repo add traefik https://helm.traefik.io/traefik
+	-help repo update
+
 	# wait for the pods to start
 	@kubectl wait po -A --for condition=ready --all --timeout=60s
 
@@ -70,6 +73,7 @@ app :
 deploy :
 	# build the local image and load into k3d
 	@kubectl apply -f deploy/app/pickle.yaml -n pickle
+	-helm install traefik traefik/traefik -n pickle -f ./deploy/traefik/traefik_values.yaml
 
 undeploy :
 	@kubectl delete namespace pickle

@@ -3,7 +3,7 @@ kind: Namespace
 metadata:
   name: pickle
   annotations:
-        linkerd.io/inject: enabled
+    linkerd.io/inject: enabled
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -73,7 +73,8 @@ metadata:
   name: web
   namespace: pickle
   annotations:
-    config.linkerd.io/trace-collector: enabled
+    config.linkerd.io/trace-collector: collector.linkerd-jaeger:55678
+    config.alpha.linkerd.io/trace-collector-service-account: collector
 spec:
   replicas: 1
   selector:
@@ -107,7 +108,8 @@ metadata:
   name: words
   namespace: pickle
   annotations:
-    config.linkerd.io/trace-collector: enabled
+    config.linkerd.io/trace-collector: collector.linkerd-jaeger:55678
+    config.alpha.linkerd.io/trace-collector-service-account: collector
 spec:
   replicas: 1
   selector:
@@ -141,7 +143,8 @@ metadata:
   name: signing
   namespace: pickle
   annotations:
-    config.linkerd.io/trace-collector: enabled
+    config.linkerd.io/trace-collector: collector.linkerd-jaeger:55678
+    config.alpha.linkerd.io/trace-collector-service-account: collector
 spec:
   replicas: 1
   selector:
