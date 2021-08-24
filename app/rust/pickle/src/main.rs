@@ -1,6 +1,6 @@
 #[macro_use] extern crate rocket;
 
-use b3::{HeaderExtractor, MetadataMap, RocketHttpHeaderMap};
+use b3::{HeaderExtractor, InMetadataMap, RocketHttpHeaderMap};
 use dill::dill::pick_words_client::{PickWordsClient};
 use dill::dill::sign_words_client::{SignWordsClient};
 use dill::dill::{SignRequest, WordsRequest, WordsResponse};
@@ -67,7 +67,7 @@ async fn words(header_map: RocketHttpHeaderMap<'_>, count: Option<u8>, signed: b
 
     global::get_text_map_propagator(|propagator| {
         let cx = propagator.extract(&HeaderExtractor(header_map.0));
-        propagator.inject_context(&cx, &mut MetadataMap(request.metadata_mut()));
+        propagator.inject_context(&cx, &mut InMetadataMap(request.metadata_mut()));
     });
 
     let response = match client.get_words(request).await {
@@ -102,7 +102,7 @@ async fn sign_words(header_map: RocketHttpHeaderMap<'_>, words: Json<Words>) -> 
 
     global::get_text_map_propagator(|propagator| {
         let cx = propagator.extract(&HeaderExtractor(header_map.0));
-        propagator.inject_context(&cx, &mut MetadataMap(request.metadata_mut()));
+        propagator.inject_context(&cx, &mut InMetadataMap(request.metadata_mut()));
     });
 
     let response = match client.sign_words(request).await {
@@ -128,8 +128,7 @@ fn rocket() -> _ {
     match opentelemetry_jaeger::new_pipeline()
             .with_service_name("pickle")
             .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
-            .build_simple() {
-            //.build_batch(opentelemetry::runtime::Tokio) {
+            .build_batch(opentelemetry::runtime::Tokio) {
         Ok(provider) => global::set_tracer_provider(provider),
         Err(e) =>  {
             error!("Failed to setup tracer: {}", e);

@@ -13,8 +13,8 @@ RUN apt-get update && \
 
 # 1b: Download and compile Rust dependencies (and store as a separate Docker layer)
 RUN USER=root cargo new pickle
-COPY rust/dill ./dill
 COPY rust/b3 ./b3
+COPY rust/dill ./dill
 WORKDIR /usr/src/pickle
 COPY rust/pickle/Cargo.toml ./
 RUN cargo install --target x86_64-unknown-linux-musl --path .

@@ -705,9 +705,10 @@ mod tests {
 }
 
 // From opentelemetry grpc examples
-pub struct MetadataMap<'a>(pub &'a mut tonic::metadata::MetadataMap);
+pub struct ExMetadataMap<'a>(pub &'a tonic::metadata::MetadataMap);
+pub struct InMetadataMap<'a>(pub &'a mut tonic::metadata::MetadataMap);
 
-impl<'a> Extractor for MetadataMap<'a> {
+impl<'a> Extractor for ExMetadataMap<'a> {
     /// Get a value for a key from the MetadataMap.  If the value can't be converted to &str, returns None
     fn get(&self, key: &str) -> Option<&str> {
         self.0.get(key).and_then(|metadata| metadata.to_str().ok())
@@ -725,7 +726,7 @@ impl<'a> Extractor for MetadataMap<'a> {
     }
 }
 
-impl<'a> Injector for MetadataMap<'a> {
+impl<'a> Injector for InMetadataMap<'a> {
     /// Set a key and value in the MetadataMap.  Does nothing if the key or value are not valid inputs
     fn set(&mut self, key: &str, value: String) {
         if let Ok(key) = tonic::metadata::MetadataKey::from_bytes(key.as_bytes()) {

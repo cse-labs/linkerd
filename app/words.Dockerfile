@@ -13,6 +13,7 @@ RUN apt-get update && \
 
 # 1b: Download and compile Rust dependencies (and store as a separate Docker layer)
 RUN USER=root cargo new words
+COPY rust/b3 ./b3
 COPY rust/dill ./dill
 WORKDIR /usr/src/words
 COPY rust/words/Cargo.toml ./

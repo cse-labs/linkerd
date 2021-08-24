@@ -1,9 +1,12 @@
+use b3::{ExMetadataMap, InMetadataMap};
 use dill::dill::pick_words_server::{PickWords, PickWordsServer};
 use dill::dill::sign_words_client::{SignWordsClient};
 use dill::dill::{SignRequest, WordsRequest, WordsResponse};
 use futures::FutureExt;
 use log::{error, info};
 use names::Generator;
+use opentelemetry::global;
+use opentelemetry::trace::noop::NoopTracerProvider;
 use rocket::serde::Deserialize;
 use std::time::Duration;
 use structopt::StructOpt;
@@ -49,6 +52,7 @@ fn generate_words(count: u32) -> Vec<String> {
 #[tonic::async_trait]
 impl PickWords for MyPickWords {
     async fn get_words(&self, request: Request<WordsRequest>) -> Result<Response<WordsResponse>, Status> {
+        let cx = global::get_text_map_propagator(|propagator| propagator.extract(&ExMetadataMap(request.metadata())));
         let words_request = request.into_inner();
         let count = words_request.count.into();
         let sign = words_request.signed.into();
@@ -70,11 +74,16 @@ impl PickWords for MyPickWords {
                 let mut client = SignWordsClient::new(timeout_channel);
 
                 let v = &words;
-                let request = tonic::Request::new(SignRequest {
+                let mut req = tonic::Request::new(SignRequest {
                     words: v.to_vec(),
                 });
 
-                let response = client.sign_words(request).await;
+                global::get_text_map_propagator(|propagator| {
+                    //let cx = propagator.extract(&ExMetadataMap(request.metadata()));
+                    propagator.inject_context(&cx, &mut InMetadataMap(req.metadata_mut()));
+                });
+
+                let response = client.sign_words(req).await;
                 match response {
                     Ok(response) => return Ok(response),
                     Err(e) => {
@@ -99,6 +108,18 @@ impl PickWords for MyPickWords {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     let args = Args::from_args();
+
+    global::set_text_map_propagator(b3::Propagator::new());
+    match opentelemetry_jaeger::new_pipeline()
+            .with_service_name("pickle")
+            .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
+            .build_batch(opentelemetry::runtime::Tokio) {
+        Ok(provider) => global::set_tracer_provider(provider),
+        Err(e) =>  {
+            error!("Failed to setup tracer: {}", e);
+             global::set_tracer_provider(NoopTracerProvider::new())
+        },
+    };
     info!("depa");
 
     let addr = format!("0.0.0.0:{}", args.port).parse()?;
