@@ -4,6 +4,7 @@ use dill::dill::sign_words_server::{SignWords, SignWordsServer};
 use dill::dill::{SignRequest, WordsResponse};
 use futures::FutureExt;
 use http_client::isahc::IsahcClient;
+use isahc::HttpClient;
 use log::{error, info};
 use openssl::sign::Signer;
 use openssl::rsa::Rsa;
