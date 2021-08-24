@@ -1,4 +1,4 @@
-// Copied from https://github.com/open-telemetry/opentelemetry-rust/blob/main/opentelemetry-zipkin/src/propagator/mod.rs
+// Most of this file is opied from https://github.com/open-telemetry/opentelemetry-rust/blob/main/opentelemetry-zipkin/src/propagator/mod.rs
 // because the full opentelemetry-zipkin crate has a dependency on openssl
 // that complicates building and would require a larger image.
 //
@@ -8,6 +8,9 @@
 // and license notices. Contributors provide an express grant of patent rights.
 // Licensed works, modifications, and larger works may be distributed under
 // different terms and without source code
+
+// The rest of the code, at the bottom, is utility functions for working with
+// rocket and tonic headers to support propagation.
 
 //! # B3 Propagator
 //!
@@ -28,6 +31,10 @@ use opentelemetry::{
     propagation::{text_map_propagator::FieldIter, Extractor, Injector, TextMapPropagator},
     trace::{SpanContext, SpanId, TraceContextExt, TraceFlags, TraceId, TraceState},
     Context,
+};
+use rocket::{
+    http::HeaderMap,
+    request::{FromRequest, Outcome, Request}
 };
 
 const B3_SINGLE_HEADER: &str = "b3";
@@ -694,5 +701,69 @@ mod tests {
                 B3_DEBUG_FLAG_HEADER
             ]
         );
+    }
+}
+
+// From opentelemetry grpc examples
+pub struct MetadataMap<'a>(pub &'a mut tonic::metadata::MetadataMap);
+
+impl<'a> Extractor for MetadataMap<'a> {
+    /// Get a value for a key from the MetadataMap.  If the value can't be converted to &str, returns None
+    fn get(&self, key: &str) -> Option<&str> {
+        self.0.get(key).and_then(|metadata| metadata.to_str().ok())
+    }
+
+    /// Collect all the keys from the MetadataMap.
+    fn keys(&self) -> Vec<&str> {
+        self.0
+            .keys()
+            .map(|key| match key {
+                tonic::metadata::KeyRef::Ascii(v) => v.as_str(),
+                tonic::metadata::KeyRef::Binary(v) => v.as_str(),
+            })
+            .collect::<Vec<_>>()
+    }
+}
+
+impl<'a> Injector for MetadataMap<'a> {
+    /// Set a key and value in the MetadataMap.  Does nothing if the key or value are not valid inputs
+    fn set(&mut self, key: &str, value: String) {
+        if let Ok(key) = tonic::metadata::MetadataKey::from_bytes(key.as_bytes()) {
+            if let Ok(val) = tonic::metadata::MetadataValue::from_str(&value) {
+                self.0.insert(key, val);
+            }
+        }
+    }
+}
+
+// Modified from the opentelemetry code to work with rocket HeaderMaps
+pub struct HeaderExtractor<'a>(pub &'a HeaderMap<'a>);
+
+impl<'a> Extractor for HeaderExtractor<'a> {
+    /// Get a value for a key from the HeaderMap.  If the value is not valid ASCII, returns None.
+    fn get(&self, key: &str) -> Option<&str> {
+        self.0.get_one(key)
+    }
+
+    /// Collect all the keys from the HeaderMap.
+    fn keys(&self) -> Vec<&str> {
+        // TODO: fix
+        // self.0
+        //     .iter()
+        //     .map(|header| header.name().as_str())
+        //     .collect::<Vec<_>>();
+        vec!["b3"]
+    }
+}
+
+// Rocket Header handling
+pub struct RocketHttpHeaderMap<'a>(pub &'a HeaderMap<'a>);
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for RocketHttpHeaderMap<'r> {
+    type Error = ();
+
+    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, ()> {
+        Outcome::Success(RocketHttpHeaderMap(request.headers()))
     }
 }

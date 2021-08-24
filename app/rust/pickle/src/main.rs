@@ -1,5 +1,6 @@
 #[macro_use] extern crate rocket;
 
+use b3::{HeaderExtractor, MetadataMap, RocketHttpHeaderMap};
 use dill::dill::pick_words_client::{PickWordsClient};
 use dill::dill::sign_words_client::{SignWordsClient};
 use dill::dill::{SignRequest, WordsRequest, WordsResponse};
@@ -42,7 +43,7 @@ fn index() -> Html<&'static str> {
 
 #[openapi]
 #[get("/words?<count>&<signed>")]
-async fn words(count: Option<u8>, signed: bool) -> Option<Json<Words>>  {
+async fn words(header_map: RocketHttpHeaderMap<'_>, count: Option<u8>, signed: bool) -> Option<Json<Words>>  {
     let channel = match Channel::from_static(&CONFIG.get().unwrap().words_svc_addr).connect().await {
         Ok(channel) => channel,
         Err(e) => {
@@ -59,9 +60,14 @@ async fn words(count: Option<u8>, signed: bool) -> Option<Json<Words>>  {
     let timeout_channel = Timeout::new(channel, Duration::from_millis(500));
     let mut client = PickWordsClient::new(timeout_channel);
 
-    let request = tonic::Request::new(WordsRequest {
+    let mut request = tonic::Request::new(WordsRequest {
         count: u32::from(cnt),
         signed: signed,
+    });
+
+    global::get_text_map_propagator(|propagator| {
+        let cx = propagator.extract(&HeaderExtractor(header_map.0));
+        propagator.inject_context(&cx, &mut MetadataMap(request.metadata_mut()));
     });
 
     let response = match client.get_words(request).await {
@@ -77,7 +83,7 @@ async fn words(count: Option<u8>, signed: bool) -> Option<Json<Words>>  {
 
 #[openapi]
 #[post("/sign", data = "<words>")]
-async fn sign_words(words: Json<Words>) -> Option<Json<Words>> {
+async fn sign_words(header_map: RocketHttpHeaderMap<'_>, words: Json<Words>) -> Option<Json<Words>> {
     let channel = match Channel::from_static(&CONFIG.get().unwrap().sign_svc_addr).connect().await {
             Ok(channel) => channel,
         Err(e) => {
@@ -90,8 +96,13 @@ async fn sign_words(words: Json<Words>) -> Option<Json<Words>> {
     let mut client = SignWordsClient::new(timeout_channel);
 
     let v = &words.words;
-    let request = tonic::Request::new(SignRequest {
+    let mut request = tonic::Request::new(SignRequest {
         words: v.to_vec(),
+    });
+
+    global::get_text_map_propagator(|propagator| {
+        let cx = propagator.extract(&HeaderExtractor(header_map.0));
+        propagator.inject_context(&cx, &mut MetadataMap(request.metadata_mut()));
     });
 
     let response = match client.sign_words(request).await {

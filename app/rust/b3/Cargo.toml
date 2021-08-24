@@ -7,3 +7,6 @@ edition = "2018"
 [dependencies]
 lazy_static = "1.4"
 opentelemetry = "0.16"
+rocket = "0.5.0-rc.1"
+rocket_http = "0.5.0-rc.1"
+tonic = "0.5.2"
