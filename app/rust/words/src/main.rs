@@ -6,6 +6,7 @@ use futures::FutureExt;
 use log::{error, info};
 use names::Generator;
 use opentelemetry::global;
+use opentelemetry::global::shutdown_tracer_provider;
 use opentelemetry::trace::noop::NoopTracerProvider;
 use rocket::serde::Deserialize;
 use std::time::Duration;
@@ -145,6 +146,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     tx.send(()).unwrap();
     server.await.unwrap();
+    shutdown_tracer_provider();
     Ok(())
 }
 

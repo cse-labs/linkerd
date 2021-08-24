@@ -1,3 +1,4 @@
+use b3::ExMetadataMap;
 use base64::encode;
 use dill::dill::sign_words_server::{SignWords, SignWordsServer};
 use dill::dill::{SignRequest, WordsResponse};
@@ -7,6 +8,10 @@ use openssl::sign::Signer;
 use openssl::rsa::Rsa;
 use openssl::pkey::{PKey, Private};
 use openssl::hash::MessageDigest;
+use opentelemetry::global;
+use opentelemetry::global::shutdown_tracer_provider;
+use opentelemetry::trace::noop::NoopTracerProvider;
+use opentelemetry::trace::{Span, Tracer};
 use rocket::serde::Deserialize;
 use std::convert::TryFrom;
 use std::fs::File;
@@ -31,7 +36,9 @@ pub struct MySignWords {
 #[tonic::async_trait]
 impl SignWords for MySignWords {
     async fn sign_words(&self, request: Request<SignRequest>) -> Result<Response<WordsResponse>, Status> {
-        
+        let cx = global::get_text_map_propagator(|propagator| propagator.extract(&ExMetadataMap(request.metadata())));
+        let mut span = global::tracer("signer").start_with_context("Signing words", cx);
+
         let mut signer = Signer::new(MessageDigest::sha256(), &self.keypair).unwrap();
         let words = request.into_inner().words;
         for w in &words {
@@ -41,6 +48,8 @@ impl SignWords for MySignWords {
         let timestamp = u64::try_from(millis).unwrap();
         signer.update(&timestamp.to_ne_bytes()).unwrap();
         let signature = encode(signer.sign_to_vec().unwrap());
+
+        span.end();
 
         let reply = WordsResponse {
             words: words,
@@ -56,6 +65,18 @@ impl SignWords for MySignWords {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     let args = Args::from_args();
+
+    global::set_text_map_propagator(b3::Propagator::new());
+    match opentelemetry_jaeger::new_pipeline()
+            .with_service_name("pickle")
+            .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
+            .build_batch(opentelemetry::runtime::Tokio) {
+        Ok(provider) => global::set_tracer_provider(provider),
+        Err(e) =>  {
+            error!("Failed to setup tracer: {}", e);
+             global::set_tracer_provider(NoopTracerProvider::new())
+        },
+    };
     info!("depb");
 
     let addr = format!("0.0.0.0:{}", args.port).parse()?;
@@ -87,5 +108,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     tx.send(()).unwrap();
     server.await.unwrap();
+    shutdown_tracer_provider();
     Ok(())
 }
