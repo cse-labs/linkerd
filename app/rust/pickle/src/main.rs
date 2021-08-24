@@ -126,7 +126,7 @@ fn get_docs() -> SwaggerUIConfig {
 fn rocket() -> _ {
     global::set_text_map_propagator(b3::Propagator::new());
     match opentelemetry_jaeger::new_pipeline()
-            .with_service_name("pickle")
+            .with_service_name("web-svc")
             .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
             .build_batch(opentelemetry::runtime::Tokio) {
         Ok(provider) => global::set_tracer_provider(provider),

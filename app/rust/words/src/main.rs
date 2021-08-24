@@ -112,7 +112,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     global::set_text_map_propagator(b3::Propagator::new());
     match opentelemetry_jaeger::new_pipeline()
-            .with_service_name("pickle")
+            .with_service_name("words_svc")
             .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
             .build_batch(opentelemetry::runtime::Tokio) {
         Ok(provider) => global::set_tracer_provider(provider),

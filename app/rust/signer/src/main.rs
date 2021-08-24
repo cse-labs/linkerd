@@ -3,6 +3,7 @@ use base64::encode;
 use dill::dill::sign_words_server::{SignWords, SignWordsServer};
 use dill::dill::{SignRequest, WordsResponse};
 use futures::FutureExt;
+use http_client::isahc::IsahcClient;
 use log::{error, info};
 use openssl::sign::Signer;
 use openssl::rsa::Rsa;
@@ -68,8 +69,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     global::set_text_map_propagator(b3::Propagator::new());
     match opentelemetry_jaeger::new_pipeline()
-            .with_service_name("pickle")
+            .with_service_name("signing-svc")
             .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
+            .with_http_client(IsahcClient(HttpClient::new()?))
             .build_batch(opentelemetry::runtime::Tokio) {
         Ok(provider) => global::set_tracer_provider(provider),
         Err(e) =>  {
