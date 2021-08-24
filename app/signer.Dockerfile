@@ -9,6 +9,7 @@ RUN rustup component add rustfmt
 
 # 1b: Download and compile Rust dependencies (and store as a separate Docker layer)
 RUN USER=root cargo new signer
+COPY rust/b3 ./b3
 COPY rust/dill ./dill
 WORKDIR /usr/src/signer
 COPY rust/signer/Cargo.toml ./
