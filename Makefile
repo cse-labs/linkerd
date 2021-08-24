@@ -17,6 +17,10 @@ help :
 
 all : delete create setup check app deploy
 
+# This version of the setup pulls and imports the linkerd images to avoid pull issues on deploy
+bootstrap :  delete pull create prime setup
+allp : delete create prime setup app deploy
+
 loop : app undeploy deploy
 
 delete :
