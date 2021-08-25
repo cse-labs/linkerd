@@ -34,7 +34,7 @@ use opentelemetry::{
 };
 use rocket::{
     http::HeaderMap,
-    request::{FromRequest, Outcome, Request}
+    request::{FromRequest, Outcome, Request},
 };
 
 const B3_SINGLE_HEADER: &str = "b3";

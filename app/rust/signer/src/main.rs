@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 use b3::ExMetadataMap;
-use bytes::Bytes;
-use isahc::ResponseExt;
 use base64::encode;
-use dill::dill::{SignRequest, WordsResponse};
+use bytes::Bytes;
 use dill::dill::sign_words_server::{SignWords, SignWordsServer};
+use dill::dill::{SignRequest, WordsResponse};
 use futures::FutureExt;
+use isahc::ResponseExt;
 use log::{error, info};
 use openssl::hash::MessageDigest;
 use openssl::pkey::{PKey, Private};
@@ -13,9 +13,9 @@ use openssl::rsa::Rsa;
 use openssl::sign::Signer;
 use opentelemetry::global;
 use opentelemetry::global::shutdown_tracer_provider;
-use opentelemetry_http::{HttpClient, HttpError};
-use opentelemetry::trace::{Span, Tracer};
 use opentelemetry::trace::noop::NoopTracerProvider;
+use opentelemetry::trace::{Span, Tracer};
+use opentelemetry_http::{HttpClient, HttpError};
 use rocket::serde::Deserialize;
 use std::convert::TryFrom;
 use std::fs::File;
@@ -27,7 +27,6 @@ use tonic::{transport::Server, Request, Response, Status};
 
 #[derive(StructOpt, Deserialize)]
 struct Args {
-
     // pretty print the json or use compact form
     #[structopt(short = "p", long = "port", default_value = "9090")]
     port: u16,
@@ -39,8 +38,13 @@ pub struct MySignWords {
 
 #[tonic::async_trait]
 impl SignWords for MySignWords {
-    async fn sign_words(&self, request: Request<SignRequest>) -> Result<Response<WordsResponse>, Status> {
-        let cx = global::get_text_map_propagator(|propagator| propagator.extract(&ExMetadataMap(request.metadata())));
+    async fn sign_words(
+        &self,
+        request: Request<SignRequest>,
+    ) -> Result<Response<WordsResponse>, Status> {
+        let cx = global::get_text_map_propagator(|propagator| {
+            propagator.extract(&ExMetadataMap(request.metadata()))
+        });
         let mut span = global::tracer("signer").start_with_context("Signing words", cx);
 
         let mut signer = Signer::new(MessageDigest::sha256(), &self.keypair).unwrap();
@@ -48,7 +52,10 @@ impl SignWords for MySignWords {
         for w in &words {
             signer.update(w.as_bytes()).unwrap();
         }
-        let millis = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis();
+        let millis = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
         let timestamp = u64::try_from(millis).unwrap();
         signer.update(&timestamp.to_ne_bytes()).unwrap();
         let signature = encode(signer.sign_to_vec().unwrap());
@@ -72,15 +79,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     global::set_text_map_propagator(b3::Propagator::new());
     match opentelemetry_jaeger::new_pipeline()
-            .with_service_name("signing-svc")
-            .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
-            .with_http_client(IsahcClient(isahc::HttpClient::new()?))
-            .build_batch(opentelemetry::runtime::Tokio) {
+        .with_service_name("signing-svc")
+        .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
+        .with_http_client(IsahcClient(isahc::HttpClient::new()?))
+        .build_simple()
+    {
+        //.build_batch(opentelemetry::runtime::Tokio) {
         Ok(provider) => global::set_tracer_provider(provider),
-        Err(e) =>  {
+        Err(e) => {
             error!("Failed to setup tracer: {}", e);
-             global::set_tracer_provider(NoopTracerProvider::new())
-        },
+            global::set_tracer_provider(NoopTracerProvider::new())
+        }
     };
     info!("depb");
 
@@ -90,7 +99,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut file = File::open("keys/pickle.key")?;
     file.read(&mut bytes[..])?;
     let rsakey = Rsa::private_key_from_pem(&bytes).unwrap();
-    let sw = MySignWords{ keypair: PKey::from_rsa(rsakey).unwrap() };
+    let sw = MySignWords {
+        keypair: PKey::from_rsa(rsakey).unwrap(),
+    };
     drop(file);
 
     info!("starting server");
@@ -106,10 +117,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // graceful shutdown on ctrl-c
     match signal::ctrl_c().await {
-        Ok(()) => {},
+        Ok(()) => {}
         Err(err) => {
             error!("Unable to listen for shutdown signal: {}", err);
-        },
+        }
     };
     tx.send(()).unwrap();
     server.await.unwrap();
@@ -123,15 +134,21 @@ pub struct IsahcClient(pub isahc::HttpClient);
 
 #[async_trait]
 impl HttpClient for IsahcClient {
-    async fn send(&self, request: http::Request<Vec<u8>>) -> Result<http::Response<Bytes>, HttpError> {
+    async fn send(
+        &self,
+        request: http::Request<Vec<u8>>,
+    ) -> Result<http::Response<Bytes>, HttpError> {
         let mut response = self.0.send(request).unwrap();
-            let size = match usize::try_from(response.body().len().unwrap_or(0)) {
-                Ok(size) => size,
-                Err(_e) => 0,
-            };
-            let mut bytes = Vec::with_capacity(size);
-            response.copy_to(&mut bytes).unwrap();
+        let size = match usize::try_from(response.body().len().unwrap_or(0)) {
+            Ok(size) => size,
+            Err(_e) => 0,
+        };
+        let mut bytes = Vec::with_capacity(size);
+        response.copy_to(&mut bytes).unwrap();
 
-        Ok(http::Response::builder().status(response.status()).body(bytes.into()).unwrap())
+        Ok(http::Response::builder()
+            .status(response.status())
+            .body(bytes.into())
+            .unwrap())
     }
 }
