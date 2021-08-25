@@ -1,3 +1,7 @@
+//
+// Signer is an example simple grpc service. It uses tonic for grpc support.
+//
+
 use async_trait::async_trait;
 use b3::ExMetadataMap;
 use base64::encode;
