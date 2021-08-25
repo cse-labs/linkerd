@@ -81,7 +81,7 @@ deploy :
 	-kubectl apply -f deploy/app/pickle_ingress.yaml
 
 undeploy :
-	@kubectl delete namespace pickle
+	-kubectl delete namespace pickle
 
 jumpbox :
 	@# start a jumpbox pod
