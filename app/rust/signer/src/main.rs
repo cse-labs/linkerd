@@ -1,30 +1,37 @@
 //
-// Signer is an example simple grpc service. It uses tonic for grpc support.
+// Signer is an example simple grpc service. It uses tonic for grpc support and
+// opentelemetry-jaeger to record tracing events.
 //
 
-use async_trait::async_trait;
 use b3::ExMetadataMap;
 use base64::encode;
-use bytes::Bytes;
-use dill::dill::sign_words_server::{SignWords, SignWordsServer};
-use dill::dill::{SignRequest, WordsResponse};
+use dill::dill::{
+    {SignRequest, WordsResponse},
+    sign_words_server::{SignWords, SignWordsServer},
+};
 use futures::FutureExt;
-use isahc::ResponseExt;
 use log::{error, info};
-use openssl::hash::MessageDigest;
-use openssl::pkey::{PKey, Private};
-use openssl::rsa::Rsa;
-use openssl::sign::Signer;
-use opentelemetry::global;
-use opentelemetry::global::shutdown_tracer_provider;
-use opentelemetry::trace::noop::NoopTracerProvider;
-use opentelemetry::trace::{Span, Tracer};
-use opentelemetry_http::{HttpClient, HttpError};
+use openssl::{
+    hash::MessageDigest,
+    pkey::{PKey, Private},
+    rsa::Rsa,
+    sign::Signer,
+};
+use opentelemetry::{
+    global,
+    global::shutdown_tracer_provider,
+    trace::{
+        Span, Tracer,
+        noop::NoopTracerProvider,
+    }
+};
 use rocket::serde::Deserialize;
-use std::convert::TryFrom;
-use std::fs::File;
-use std::io::Read;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    convert::TryFrom,
+    fs::File,
+    io::Read,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use structopt::StructOpt;
 use tokio::{signal, sync::oneshot};
 use tonic::{transport::Server, Request, Response, Status};
@@ -85,8 +92,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     global::set_text_map_propagator(b3::Propagator::new());
     match opentelemetry_jaeger::new_pipeline()
         .with_service_name("signing-svc")
-        .with_collector_endpoint("http://collector.linkerd-jaeger:14268")
-        .with_http_client(IsahcClient(isahc::HttpClient::new()?))
+        .with_collector_endpoint("http://collector.linkerd-jaeger:14268/api/traces")
         .build_batch(opentelemetry::runtime::Tokio)
     {
         Ok(provider) => global::set_tracer_provider(provider),
@@ -130,29 +136,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     server.await.unwrap();
     shutdown_tracer_provider();
     Ok(())
-}
-
-// from https://github.com/open-telemetry/opentelemetry-rust/blob/main/opentelemetry-zipkin/src/lib.rs
-#[derive(Debug)]
-pub struct IsahcClient(pub isahc::HttpClient);
-
-#[async_trait]
-impl HttpClient for IsahcClient {
-    async fn send(
-        &self,
-        request: http::Request<Vec<u8>>,
-    ) -> Result<http::Response<Bytes>, HttpError> {
-        let mut response = self.0.send(request).unwrap();
-        let size = match usize::try_from(response.body().len().unwrap_or(0)) {
-            Ok(size) => size,
-            Err(_e) => 0,
-        };
-        let mut bytes = Vec::with_capacity(size);
-        response.copy_to(&mut bytes).unwrap();
-
-        Ok(http::Response::builder()
-            .status(response.status())
-            .body(bytes.into())
-            .unwrap())
-    }
 }
