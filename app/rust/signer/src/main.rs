@@ -59,6 +59,7 @@ impl SignWords for MySignWords {
         let timestamp = u64::try_from(millis).unwrap();
         signer.update(&timestamp.to_ne_bytes()).unwrap();
         let signature = encode(signer.sign_to_vec().unwrap());
+        span.add_event("signed words".to_string(), Vec::new());
 
         span.end();
 
