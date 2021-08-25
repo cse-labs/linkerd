@@ -17,6 +17,10 @@ help :
 
 all : delete create setup check app deploy
 
+# This version of the setup pulls and imports the linkerd images to avoid pull issues on deploy
+bootstrap :  delete pull create prime setup
+allp : delete create prime setup app deploy
+
 loop : app undeploy deploy
 
 delete :
@@ -39,15 +43,18 @@ setup :
 	# from https://linkerd.io/2.10/getting-started/
 	@deploy/linkerd/install_linkerd.sh
 	@linkerd install --image-pull-policy IfNotPresent | kubectl apply -f -
-	@linkerd viz install | kubectl apply -f - # on-cluster metrics stack
-	# to see, use: linkerd viz dashboard &
 	@linkerd jaeger install | kubectl apply -f - # Jaeger collector and UI
+	@linkerd viz install --set jaegerUrl=jaeger.linkerd-jaeger:16686 | kubectl apply -f - # on-cluster metrics stack
+	# to see, use: linkerd viz dashboard &
 
 	# deploy fluent bit
 	-kubectl apply -f deploy/fluentbit/fluentbit.yaml
 	-kubectl create secret generic log-secrets --from-literal=WorkspaceId=dev --from-literal=SharedKey=dev -n fluentbit
 	-kubectl apply -f deploy/fluentbit/stdout-config.yaml
 	-kubectl apply -f deploy/fluentbit/fluentbit-pod.yaml
+
+	-helm repo add traefik https://helm.traefik.io/traefik
+	-helm repo update
 
 	# wait for the pods to start
 	@kubectl wait po -A --for condition=ready --all --timeout=60s
@@ -69,8 +76,9 @@ app :
 
 deploy :
 	# build the local image and load into k3d
-	@kubectl create -f deploy/app/pickle.yaml -n pickle
-	@kubectl wait po -A --for condition=ready --all  --timeout=60s
+	@kubectl apply -f deploy/app/pickle.yaml -n pickle
+	-helm install traefik traefik/traefik -n pickle -f ./deploy/traefik/traefik_values.yaml
+	-kubectl apply -f deploy/app/pickle_ingress.yaml
 
 undeploy :
 	@kubectl delete namespace pickle

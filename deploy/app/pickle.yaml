@@ -3,7 +3,7 @@ kind: Namespace
 metadata:
   name: pickle
   annotations:
-        linkerd.io/inject: enabled
+    linkerd.io/inject: enabled
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -30,8 +30,8 @@ metadata:
   namespace: pickle
 spec:
   ports:
-    - port: 8000
-      targetPort: 8000
+    - port: 80
+      targetPort: 80
       nodePort: 30088
   selector:
     app: web-svc
@@ -72,6 +72,9 @@ metadata:
     app.kubernetes.io/version: v11
   name: web
   namespace: pickle
+  annotations:
+    config.linkerd.io/trace-collector: collector.linkerd-jaeger:55678
+    config.alpha.linkerd.io/trace-collector-service-account: collector
 spec:
   replicas: 1
   selector:
@@ -91,7 +94,7 @@ spec:
         - name: RUST_LOG
           value: "INFO"
         ports:
-        - containerPort: 8000
+        - containerPort: 80
           name: http
       serviceAccountName: weber
 ---
@@ -104,6 +107,9 @@ metadata:
     app.kubernetes.io/version: v11
   name: words
   namespace: pickle
+  annotations:
+    config.linkerd.io/trace-collector: collector.linkerd-jaeger:55678
+    config.alpha.linkerd.io/trace-collector-service-account: collector
 spec:
   replicas: 1
   selector:
@@ -136,6 +142,9 @@ metadata:
     app.kubernetes.io/version: v11
   name: signing
   namespace: pickle
+  annotations:
+    config.linkerd.io/trace-collector: collector.linkerd-jaeger:55678
+    config.alpha.linkerd.io/trace-collector-service-account: collector
 spec:
   replicas: 1
   selector:

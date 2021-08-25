@@ -1,0 +1,14 @@
+[package]
+name = "b3"
+version = "0.1.0"
+authors = ["Dan Massey <danmass@microsoft.com>"]
+edition = "2018"
+
+[dependencies]
+http = "0.2"
+lazy_static = "1.4"
+opentelemetry = "0.16"
+opentelemetry-http = "0.5"
+rocket = "0.5.0-rc.1"
+rocket_http = "0.5.0-rc.1"
+tonic = "0.5.2"

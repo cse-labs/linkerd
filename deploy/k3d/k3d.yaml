@@ -17,6 +17,9 @@ ports:
   - port: 30088:30088
     nodeFilters:
       - server[0]
+  - port: 8080:80
+    nodeFilters:
+      - loadbalancer
 
 options:
   k3d:
