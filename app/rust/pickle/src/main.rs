@@ -1,23 +1,34 @@
+//
+// Pickle is an example service that implements an RPC web api in front of grpc
+// services. It uses Rocket as its web framework and tonic for grpc support.
+//
+
 #[macro_use]
 extern crate rocket;
 
 use b3::{HeaderExtractor, InMetadataMap, RocketHttpHeaderMap};
-use dill::dill::pick_words_client::PickWordsClient;
-use dill::dill::sign_words_client::SignWordsClient;
-use dill::dill::{SignRequest, WordsRequest, WordsResponse};
+use dill::dill::{
+    SignRequest, WordsRequest, WordsResponse,
+    pick_words_client::PickWordsClient,
+    sign_words_client::SignWordsClient,
+};
 use log::error;
 use once_cell::sync::OnceCell;
 use opentelemetry::global;
-use opentelemetry::trace::noop::NoopTracerProvider;
-use rocket::get;
-use rocket::response::content::Html;
-use rocket::serde::{json::Json, Deserialize, Serialize};
-use rocket_okapi::swagger_ui::{make_swagger_ui, SwaggerUIConfig};
-use rocket_okapi::{openapi, routes_with_openapi, JsonSchema};
+use rocket::{
+    get,
+    response::content::Html,
+    serde::{Deserialize, Serialize, json::Json}
+};
+use rocket_okapi::{
+    openapi, routes_with_openapi, JsonSchema,
+    swagger_ui::{make_swagger_ui, SwaggerUIConfig},
+};
 use std::time::Duration;
 use tonic::transport::Channel;
 use tower::timeout::Timeout;
 
+// App-specific config provided using Rocket config
 #[derive(Debug)]
 struct Config {
     words_svc_addr: String,
@@ -25,6 +36,7 @@ struct Config {
 }
 static CONFIG: OnceCell<Config> = OnceCell::new();
 
+// json return value
 #[derive(Debug, Deserialize, JsonSchema, Serialize)]
 struct Words {
     words: Vec<String>,
@@ -39,7 +51,12 @@ struct Words {
 #[openapi]
 #[get("/")]
 fn index() -> Html<&'static str> {
-    Html(r#"<html><body><a href="api/v1.0/openapi.json">OpenAPI docs</a></body><html>"#)
+    Html(r#"<html>
+        <body>
+            <a href="swagger/index.html">Swagger docs</a><br/>
+            <a href="api/v1.0/openapi.json">OpenAPI docs</a>
+        </body>
+    <html>"#)
 }
 
 #[openapi]
@@ -49,6 +66,11 @@ async fn words(
     count: Option<u8>,
     signed: bool,
 ) -> Option<Json<Words>> {
+    let cnt = match count {
+        Some(cnt) => cnt,
+        None => 3,
+    };
+    
     let channel = match Channel::from_static(&CONFIG.get().unwrap().words_svc_addr)
         .connect()
         .await
@@ -59,12 +81,6 @@ async fn words(
             return None;
         }
     };
-
-    let cnt = match count {
-        Some(cnt) => cnt,
-        None => 3,
-    };
-
     let timeout_channel = Timeout::new(channel, Duration::from_millis(500));
     let mut client = PickWordsClient::new(timeout_channel);
 
@@ -95,6 +111,8 @@ async fn sign_words(
     header_map: RocketHttpHeaderMap<'_>,
     words: Json<Words>,
 ) -> Option<Json<Words>> {
+    let v = &words.words;
+
     let channel = match Channel::from_static(&CONFIG.get().unwrap().sign_svc_addr)
         .connect()
         .await
@@ -105,11 +123,9 @@ async fn sign_words(
             return None;
         }
     };
-
     let timeout_channel = Timeout::new(channel, Duration::from_millis(500));
     let mut client = SignWordsClient::new(timeout_channel);
 
-    let v = &words.words;
     let mut request = tonic::Request::new(SignRequest { words: v.to_vec() });
 
     global::get_text_map_propagator(|propagator| {
@@ -130,6 +146,7 @@ async fn sign_words(
 
 fn get_docs() -> SwaggerUIConfig {
     SwaggerUIConfig {
+        url: "../api/v1.0/openapi.json".to_owned(),
         ..Default::default()
     }
 }
@@ -137,17 +154,6 @@ fn get_docs() -> SwaggerUIConfig {
 #[launch]
 fn rocket() -> _ {
     global::set_text_map_propagator(b3::Propagator::new());
-    match opentelemetry_jaeger::new_pipeline()
-        .with_service_name("web-svc")
-        .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
-        .build_batch(opentelemetry::runtime::Tokio)
-    {
-        Ok(provider) => global::set_tracer_provider(provider),
-        Err(e) => {
-            error!("Failed to setup tracer: {}", e);
-            global::set_tracer_provider(NoopTracerProvider::new())
-        }
-    };
 
     let rocket = rocket::build()
         .mount("/", routes_with_openapi![index])
@@ -165,6 +171,8 @@ fn rocket() -> _ {
     CONFIG.set(config).unwrap();
     rocket
 }
+
+// Convenience functions for working with Words and WordsResponses
 
 impl Words {
     fn from(proto: WordsResponse) -> Words {
@@ -190,6 +198,8 @@ impl PartialEq for Words {
             && self.signature == self.signature
     }
 }
+
+// Unit tests
 
 #[cfg(test)]
 mod tests {

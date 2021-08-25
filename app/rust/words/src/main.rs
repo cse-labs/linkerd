@@ -1,3 +1,7 @@
+//
+// Words is an example simple grpc service. It uses tonic for grpc support.
+//
+
 use b3::{ExMetadataMap, InMetadataMap};
 use dill::dill::pick_words_server::{PickWords, PickWordsServer};
 use dill::dill::sign_words_client::SignWordsClient;
@@ -6,8 +10,6 @@ use futures::FutureExt;
 use log::{error, info};
 use names::Generator;
 use opentelemetry::global;
-use opentelemetry::global::shutdown_tracer_provider;
-use opentelemetry::trace::noop::NoopTracerProvider;
 use rocket::serde::Deserialize;
 use std::time::Duration;
 use structopt::StructOpt;
@@ -28,16 +30,22 @@ struct Args {
     )]
     sign_svc_addr: String,
 
-    // pretty print the json or use compact form
+    // port for the grpc service to listen on
     #[structopt(short = "p", long = "port", default_value = "9090")]
     port: u16,
 }
 
+// grpc service
 #[derive(Default)]
 pub struct MyPickWords {
     sign_svc_addr: String,
 }
 
+/// Returns a list of adjectives followed by a noun
+///
+/// # Arguments
+///
+/// * `count` - Number of words to return
 fn generate_words(count: u32) -> Vec<String> {
     let mut words = Vec::new();
     let mut gen = Generator::default();
@@ -75,6 +83,8 @@ impl PickWords for MyPickWords {
 
         match sign {
             true => {
+                let v = &words;
+
                 let addr = self.sign_svc_addr.clone();
                 let channel = match Channel::from_shared(addr).unwrap().connect().await {
                     Ok(channel) => channel,
@@ -85,15 +95,12 @@ impl PickWords for MyPickWords {
                         )));
                     }
                 };
-
                 let timeout_channel = Timeout::new(channel, Duration::from_millis(500));
                 let mut client = SignWordsClient::new(timeout_channel);
 
-                let v = &words;
                 let mut req = tonic::Request::new(SignRequest { words: v.to_vec() });
 
                 global::get_text_map_propagator(|propagator| {
-                    //let cx = propagator.extract(&ExMetadataMap(request.metadata()));
                     propagator.inject_context(&cx, &mut InMetadataMap(req.metadata_mut()));
                 });
 
@@ -122,19 +129,7 @@ impl PickWords for MyPickWords {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     let args = Args::from_args();
-
     global::set_text_map_propagator(b3::Propagator::new());
-    match opentelemetry_jaeger::new_pipeline()
-        .with_service_name("words_svc")
-        .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
-        .build_batch(opentelemetry::runtime::Tokio)
-    {
-        Ok(provider) => global::set_tracer_provider(provider),
-        Err(e) => {
-            error!("Failed to setup tracer: {}", e);
-            global::set_tracer_provider(NoopTracerProvider::new())
-        }
-    };
     info!("depa");
 
     let addr = format!("0.0.0.0:{}", args.port).parse()?;
@@ -162,9 +157,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     tx.send(()).unwrap();
     server.await.unwrap();
-    shutdown_tracer_provider();
     Ok(())
 }
+
+// Unit tests
 
 #[cfg(test)]
 mod tests {

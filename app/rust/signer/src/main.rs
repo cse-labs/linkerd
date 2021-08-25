@@ -1,3 +1,7 @@
+//
+// Signer is an example simple grpc service. It uses tonic for grpc support.
+//
+
 use async_trait::async_trait;
 use b3::ExMetadataMap;
 use base64::encode;
@@ -27,7 +31,7 @@ use tonic::{transport::Server, Request, Response, Status};
 
 #[derive(StructOpt, Deserialize)]
 struct Args {
-    // pretty print the json or use compact form
+    // port for grpc service to listen on
     #[structopt(short = "p", long = "port", default_value = "9090")]
     port: u16,
 }
@@ -59,6 +63,7 @@ impl SignWords for MySignWords {
         let timestamp = u64::try_from(millis).unwrap();
         signer.update(&timestamp.to_ne_bytes()).unwrap();
         let signature = encode(signer.sign_to_vec().unwrap());
+        span.add_event("signed words".to_string(), Vec::new());
 
         span.end();
 
@@ -80,11 +85,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     global::set_text_map_propagator(b3::Propagator::new());
     match opentelemetry_jaeger::new_pipeline()
         .with_service_name("signing-svc")
-        .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
+        .with_collector_endpoint("http://collector.linkerd-jaeger:14268")
         .with_http_client(IsahcClient(isahc::HttpClient::new()?))
-        .build_simple()
+        .build_batch(opentelemetry::runtime::Tokio)
     {
-        //.build_batch(opentelemetry::runtime::Tokio) {
         Ok(provider) => global::set_tracer_provider(provider),
         Err(e) => {
             error!("Failed to setup tracer: {}", e);
