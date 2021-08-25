@@ -1,20 +1,24 @@
+use async_trait::async_trait;
 use b3::ExMetadataMap;
+use bytes::Bytes;
+use isahc::ResponseExt;
 use base64::encode;
-use dill::dill::sign_words_server::{SignWords, SignWordsServer};
 use dill::dill::{SignRequest, WordsResponse};
+use dill::dill::sign_words_server::{SignWords, SignWordsServer};
 use futures::FutureExt;
-use http_client::isahc::IsahcClient;
 use isahc::HttpClient;
 use log::{error, info};
-use openssl::sign::Signer;
-use openssl::rsa::Rsa;
-use openssl::pkey::{PKey, Private};
 use openssl::hash::MessageDigest;
+use openssl::pkey::{PKey, Private};
+use openssl::rsa::Rsa;
+use openssl::sign::Signer;
 use opentelemetry::global;
 use opentelemetry::global::shutdown_tracer_provider;
-use opentelemetry::trace::noop::NoopTracerProvider;
+use opentelemetry_http::{HttpClient, HttpError};
 use opentelemetry::trace::{Span, Tracer};
+use opentelemetry::trace::noop::NoopTracerProvider;
 use rocket::serde::Deserialize;
+use std::convert::TryFrom;
 use std::convert::TryFrom;
 use std::fs::File;
 use std::io::Read;
@@ -72,7 +76,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     match opentelemetry_jaeger::new_pipeline()
             .with_service_name("signing-svc")
             .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
-            .with_http_client(IsahcClient(HttpClient::new()?))
+            .with_http_client(b3::IsahcClient(HttpClient::new()?))
             .build_batch(opentelemetry::runtime::Tokio) {
         Ok(provider) => global::set_tracer_provider(provider),
         Err(e) =>  {
@@ -113,4 +117,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     server.await.unwrap();
     shutdown_tracer_provider();
     Ok(())
+}
+
+// from https://github.com/open-telemetry/opentelemetry-rust/blob/main/opentelemetry-zipkin/src/lib.rs
+#[derive(Debug)]
+pub struct IsahcClient(pub isahc::HttpClient);
+
+#[async_trait]
+impl HttpClient for IsahcClient {
+    async fn send(&self, request: http::Request<Vec<u8>>) -> Result<http::Response<Bytes>, HttpError> {
+        let mut response = self.0.send(request).unwrap();
+            let size = match usize::try_from(response.body().len().unwrap_or(0)) {
+                Ok(size) => size,
+                Err(_e) => 0,
+            };
+            let mut bytes = Vec::with_capacity(size);
+            response.copy_to(&mut bytes).unwrap();
+
+        Ok(http::Response::builder().status(response.status()).body(bytes.into()).unwrap())
+    }
 }

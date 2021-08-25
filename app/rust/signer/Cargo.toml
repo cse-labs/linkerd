@@ -5,7 +5,9 @@ authors = ["Dan Massey <danmass@microsoft.com>"]
 edition = "2018"
 
 [dependencies]
+async-trait = "0.1"
 b3 = { path = "../b3" }
+bytes = "1.0"
 base64 = "0.13.0"
 dill = { path = "../dill" }
 env_logger = "0.9.0"
@@ -15,6 +17,7 @@ isahc = { version = "0.9", features = ["http2"] }
 log = "0.4.14"
 openssl = { version = "0.10", features = ["vendored"] }
 opentelemetry = { version = "0.16", features = ["rt-tokio", "trace"] }
+opentelemetry-http = "0.5"
 opentelemetry-jaeger = { version = "0.15", features = ["collector_client", "rt-tokio"] }
 prost = "0.8"
 prost-types = "0.8"
