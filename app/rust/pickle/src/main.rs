@@ -51,7 +51,12 @@ struct Words {
 #[openapi]
 #[get("/")]
 fn index() -> Html<&'static str> {
-    Html(r#"<html><body><a href="api/v1.0/openapi.json">OpenAPI docs</a></body><html>"#)
+    Html(r#"<html>
+        <body>
+            <a href="swagger/index.html">Swagger docs</a><br/>
+            <a href="api/v1.0/openapi.json">OpenAPI docs</a>
+        </body>
+    <html>"#)
 }
 
 #[openapi]
