@@ -6,7 +6,6 @@ use base64::encode;
 use dill::dill::{SignRequest, WordsResponse};
 use dill::dill::sign_words_server::{SignWords, SignWordsServer};
 use futures::FutureExt;
-use isahc::HttpClient;
 use log::{error, info};
 use openssl::hash::MessageDigest;
 use openssl::pkey::{PKey, Private};
@@ -18,7 +17,6 @@ use opentelemetry_http::{HttpClient, HttpError};
 use opentelemetry::trace::{Span, Tracer};
 use opentelemetry::trace::noop::NoopTracerProvider;
 use rocket::serde::Deserialize;
-use std::convert::TryFrom;
 use std::convert::TryFrom;
 use std::fs::File;
 use std::io::Read;
@@ -76,7 +74,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     match opentelemetry_jaeger::new_pipeline()
             .with_service_name("signing-svc")
             .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
-            .with_http_client(b3::IsahcClient(HttpClient::new()?))
+            .with_http_client(IsahcClient(isahc::HttpClient::new()?))
             .build_batch(opentelemetry::runtime::Tokio) {
         Ok(provider) => global::set_tracer_provider(provider),
         Err(e) =>  {

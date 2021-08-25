@@ -12,6 +12,7 @@ base64 = "0.13.0"
 dill = { path = "../dill" }
 env_logger = "0.9.0"
 futures = "0.3"
+http = "0.2"
 http-client = { version = "6.3", features = ["curl_client"] }
 isahc = { version = "0.9", features = ["http2"] }
 log = "0.4.14"
