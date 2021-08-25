@@ -13,7 +13,6 @@ use openssl::rsa::Rsa;
 use openssl::sign::Signer;
 use opentelemetry::global;
 use opentelemetry::global::shutdown_tracer_provider;
-use opentelemetry_otlp::WithExportConfig;
 use opentelemetry::trace::noop::NoopTracerProvider;
 use opentelemetry::trace::{Span, Tracer};
 use opentelemetry_http::{HttpClient, HttpError};
@@ -80,27 +79,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::from_args();
 
     global::set_text_map_propagator(b3::Propagator::new());
-    // match opentelemetry_jaeger::new_pipeline()
-    //     .with_service_name("signing-svc")
-    //     .with_collector_endpoint("http://collector.linkerd-jaeger:55678")
-    //     .with_http_client(IsahcClient(isahc::HttpClient::new()?))
-    opentelemetry_otlp::new_pipeline()
-        .tracing()
-        .with_exporter(
-            opentelemetry_otlp::new_exporter()
-                .http()
-                .with_http_client(IsahcClient(isahc::HttpClient::new()?))
-                .with_endpoint("http://collector.linkerd-jaeger:55678")
-        )
-        .install_simple();
-    // {
-    //     //.build_batch(opentelemetry::runtime::Tokio) {
-    //     Ok(provider) => global::set_tracer_provider(provider),
-    //     Err(e) => {
-    //         error!("Failed to setup tracer: {}", e);
-    //         global::set_tracer_provider(NoopTracerProvider::new())
-    //     }
-    // };
+    match opentelemetry_jaeger::new_pipeline()
+        .with_service_name("signing-svc")
+        .with_collector_endpoint("http://collector.linkerd-jaeger:14268")
+        .with_http_client(IsahcClient(isahc::HttpClient::new()?))
+        .build_simple()
+        //.build_batch(opentelemetry::runtime::Tokio) {
+    {
+        Ok(provider) => global::set_tracer_provider(provider),
+        Err(e) => {
+            error!("Failed to setup tracer: {}", e);
+            global::set_tracer_provider(NoopTracerProvider::new())
+        }
+    };
     info!("depb");
 
     let addr = format!("0.0.0.0:{}", args.port).parse()?;

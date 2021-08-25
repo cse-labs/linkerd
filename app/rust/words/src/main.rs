@@ -93,7 +93,6 @@ impl PickWords for MyPickWords {
                 let mut req = tonic::Request::new(SignRequest { words: v.to_vec() });
 
                 global::get_text_map_propagator(|propagator| {
-                    //let cx = propagator.extract(&ExMetadataMap(request.metadata()));
                     propagator.inject_context(&cx, &mut InMetadataMap(req.metadata_mut()));
                 });
 

@@ -1,6 +1,7 @@
-// Most of this file is opied from https://github.com/open-telemetry/opentelemetry-rust/blob/main/opentelemetry-zipkin/src/propagator/mod.rs
+// Most of this file is copied from 
+// https://github.com/open-telemetry/opentelemetry-rust/blob/main/opentelemetry-zipkin/src/propagator/mod.rs
 // because the full opentelemetry-zipkin crate has a dependency on openssl
-// that complicates building and would require a larger image.
+// that complicates building and would require larger images for all services.
 //
 // https://github.com/open-telemetry/opentelemetry-rust/blob/main/LICENSE
 // open-telemetry/opentelemetry-rust is licensed under the Apache License 2.0
@@ -10,7 +11,8 @@
 // different terms and without source code
 
 // The rest of the code, at the bottom, is utility functions for working with
-// rocket and tonic headers to support propagation.
+// rocket and tonic headers to support propagation. Where lifted from other
+// sources, the original sources are documented.
 
 //! # B3 Propagator
 //!
@@ -704,7 +706,8 @@ mod tests {
     }
 }
 
-// From opentelemetry grpc examples
+// Tonic grpc etadata adapters from opentelemetry grpc tracing examples at
+// https://github.com/open-telemetry/opentelemetry-rust/tree/main/examples/tracing-grpc
 pub struct ExMetadataMap<'a>(pub &'a tonic::metadata::MetadataMap);
 pub struct InMetadataMap<'a>(pub &'a mut tonic::metadata::MetadataMap);
 
@@ -737,7 +740,7 @@ impl<'a> Injector for InMetadataMap<'a> {
     }
 }
 
-// Modified from the opentelemetry code to work with rocket HeaderMaps
+// Modified from the opentelemetry code for http HeaderMaps to work with rocket HeaderMaps
 pub struct HeaderExtractor<'a>(pub &'a HeaderMap<'a>);
 
 impl<'a> Extractor for HeaderExtractor<'a> {
@@ -748,7 +751,7 @@ impl<'a> Extractor for HeaderExtractor<'a> {
 
     /// Collect all the keys from the HeaderMap.
     fn keys(&self) -> Vec<&str> {
-        // TODO: fix
+        // TODO: fix move/borrow issue
         // self.0
         //     .iter()
         //     .map(|header| header.name().as_str())
@@ -757,7 +760,7 @@ impl<'a> Extractor for HeaderExtractor<'a> {
     }
 }
 
-// Rocket Header handling
+// Rocket Header handling for trace propagation
 pub struct RocketHttpHeaderMap<'a>(pub &'a HeaderMap<'a>);
 
 #[rocket::async_trait]

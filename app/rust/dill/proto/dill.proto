@@ -2,10 +2,14 @@ syntax = "proto3";
 
 package dill;
 
+// Retrieves the specified count of words, consisting of
+// count - 1 adjectives and a noun. If signed is specified,
+// the response includes a timestamp and signature.
 service PickWords {
     rpc GetWords(WordsRequest) returns (WordsResponse);
 }
 
+// Attaches a timestamp and signature to the words provided.
 service SignWords {
     rpc SignWords(SignRequest) returns (WordsResponse);
 }

@@ -162,5 +162,5 @@ spec:
         name: signing-svc
         env:
         - name: RUST_LOG
-          value: "INFO"
+          value: "DEBUG"
       serviceAccountName: signer
