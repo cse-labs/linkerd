@@ -56,7 +56,7 @@ impl SignWords for MySignWords {
         let cx = global::get_text_map_propagator(|propagator| {
             propagator.extract(&ExMetadataMap(request.metadata()))
         });
-        let mut span = global::tracer("signer").start_with_context("Signing words", cx);
+        let mut span = global::tracer("signer").start_with_context("signing words", cx);
 
         let mut signer = Signer::new(MessageDigest::sha256(), &self.keypair).unwrap();
         let words = request.into_inner().words;
