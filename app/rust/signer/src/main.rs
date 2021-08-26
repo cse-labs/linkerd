@@ -10,7 +10,7 @@ use dill::dill::{
     sign_words_server::{SignWords, SignWordsServer},
 };
 use futures::FutureExt;
-use log::{error, info};
+use log::{error, info, warn};
 use openssl::{
     hash::MessageDigest,
     pkey::{PKey, Private},
@@ -39,8 +39,28 @@ use tonic::{transport::Server, Request, Response, Status};
 #[derive(StructOpt, Deserialize)]
 struct Args {
     // port for grpc service to listen on
-    #[structopt(short = "p", long = "port", default_value = "9090")]
+    #[structopt(
+        short = "p",
+        long = "port",
+        default_value = "9090",
+    )]
     port: u16,
+
+    // service name
+    #[structopt(
+        short = "n",
+        long = "tracing-service-name",
+        default_value = "signing-svc",
+    )]
+    service_name: String,
+
+    // jaeger collector endpoint
+    #[structopt(
+        short = "t",
+        long = "trace-collector-endpoint",
+        default_value = "http://collector.linkerd-jaeger:14268/api/traces",
+    )]
+    trace_collector_endpoint: String,
 }
 
 pub struct MySignWords {
@@ -89,21 +109,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     let args = Args::from_args();
 
+    info!("Service {}", args.service_name);
+
     global::set_text_map_propagator(b3::Propagator::new());
     match opentelemetry_jaeger::new_pipeline()
-        .with_service_name("signing-svc")
-        .with_collector_endpoint("http://collector.linkerd-jaeger:14268/api/traces")
+        .with_service_name(args.service_name)
+        .with_collector_endpoint(args.trace_collector_endpoint.clone())
         .build_batch(opentelemetry::runtime::Tokio)
     {
-        Ok(provider) => global::set_tracer_provider(provider),
+        Ok(provider) => {
+            global::set_tracer_provider(provider);
+            info!("Tracing to collector {}", args.trace_collector_endpoint);
+        }
         Err(e) => {
-            error!("Failed to setup tracer: {}", e);
-            global::set_tracer_provider(NoopTracerProvider::new())
+            warn!("Failed to setup tracer: {}", e);
+            global::set_tracer_provider(NoopTracerProvider::new());
         }
     };
-    info!("depb");
-
-    let addr = format!("0.0.0.0:{}", args.port).parse()?;
 
     let mut bytes: [u8; 8192] = [0; 8192];
     let mut file = File::open("keys/pickle.key")?;
@@ -114,8 +136,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     drop(file);
 
-    info!("starting server");
-    info!("SignServer listening on {}", addr);
+    let addr = format!("0.0.0.0:{}", args.port).parse()?;
+
+    info!("starting server on {}", addr);
     let (tx, rx) = oneshot::channel::<()>();
     let server = tokio::spawn(async move {
         Server::builder()

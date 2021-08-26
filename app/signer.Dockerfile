@@ -26,6 +26,13 @@ COPY --from=builder /usr/local/cargo/bin/pickle_signer .
 COPY rust/signer/keys ./keys
 ARG SIGN_GRPC_PORT=9090
 ENV SIGN_GRPC_PORT=$SIGN_GRPC_PORT
+ARG TRACING_SERVICE_NAME=signing-svc
+ENV TRACING_SERVICE_NAME=$TRACING_SERVICE_NAME
+ARG TRACING_COLLECTOR_ENDPOINT=http://collector.linkerd-jaeger:14268/api/traces
+ENV TRACING_COLLECTOR_ENDPOINT=$TRACING_COLLECTOR_ENDPOINT
 ARG RUST_LOG=TRACE
 ENV RUST_LOG=$RUST_LOG
-CMD ./pickle_signer --port $SIGN_GRPC_PORT
+CMD ./pickle_signer \
+        --port $WORD_GRPC_PORT \
+        --tracing-service-name $TRACING_SERVICE_NAME \
+        --trace-collector-endpoint $TRACING_COLLECTOR_ENDPOINT
