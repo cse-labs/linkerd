@@ -28,18 +28,9 @@ use tonic::{
     transport::{Channel, Server},
     Request, Response, Status,
 };
-use tower::timeout::Timeout;
 
 #[derive(StructOpt, Deserialize)]
 struct Args {
-    // address of the SignWords grpc service
-    #[structopt(
-        short = "s",
-        long = "sign-svc-addr",
-        default_value = "http://signing-svc:9090",
-    )]
-    sign_svc_addr: String,
-
     // port for the grpc service to listen on
     #[structopt(
         short = "p",
@@ -48,10 +39,18 @@ struct Args {
     )]
     port: u16,
 
+    // address of the SignWords grpc service
+    #[structopt(
+        short = "s",
+        long = "sign-svc-addr",
+        default_value = "http://signing-svc:9090",
+    )]
+    sign_svc_addr: String,
+
     // service name
     #[structopt(
         short = "n",
-        long = "service-name",
+        long = "tracing-service-name",
         default_value = "words-svc",
     )]
     service_name: String,
@@ -66,9 +65,8 @@ struct Args {
 }
 
 // grpc service
-#[derive(Default)]
 pub struct MyPickWords {
-    sign_svc_addr: String,
+    sign_words_channel: Channel,
 }
 
 /// Returns a list of adjectives followed by a noun
@@ -110,9 +108,7 @@ impl PickWords for MyPickWords {
         let sign = words_request.signed.into();
 
         let mut w_span = global::tracer("words").start_with_context("generating words", cx.clone());
-
         let words = generate_words(count);
-
         w_span.end();
 
         match sign {
@@ -121,37 +117,20 @@ impl PickWords for MyPickWords {
                     words: words,
                     ..Default::default()
                 };
-
                 return Ok(Response::new(reply));
             }
             true => {
-                let v = &words;
-
                 let mut s_span = global::tracer("words").start_with_context("requesting signature", cx);
-
-                let addr = self.sign_svc_addr.clone();
-                let channel = match Channel::from_shared(addr).unwrap().connect().await {
-                    Ok(channel) => channel,
-                    Err(e) => {
-                        error!("Failed to create SignWords channel: {}", e);
-                        s_span.record_exception(&e);
-                        return Err(Status::unknown(format!(
-                            "error creating channel to signing service"
-                        )));
-                    }
-                };
-                let timeout_channel = Timeout::new(channel, Duration::from_millis(500));
-                let mut client = SignWordsClient::new(timeout_channel);
-
+                
+                let v = &words;
                 let mut req = tonic::Request::new(SignRequest { words: v.to_vec() });
 
                 let grpc_cx = &Context::new().with_remote_span_context(s_span.span_context().clone());
                 global::get_text_map_propagator(|propagator| {
                     propagator.inject_context(grpc_cx, &mut InMetadataMap(req.metadata_mut()));
                 });
-
-                let response = client.sign_words(req).await;
-
+           
+                let response = SignWordsClient::new(self.sign_words_channel.clone()).sign_words(req).await;
                 match response {
                     Ok(response) => {
                         s_span.end();
@@ -160,6 +139,7 @@ impl PickWords for MyPickWords {
                     Err(e) => {
                         error!("Failed to call SignWords service: {}", e);
                         s_span.record_exception(&e);
+                        s_span.end();
                         return Err(Status::unknown(format!("error invoking signing service")));
                     }
                 };
@@ -191,10 +171,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    let addr = format!("0.0.0.0:{}", args.port).parse()?;
+    let channel = Channel::from_shared(args.sign_svc_addr.clone())
+        .unwrap()
+        .timeout(Duration::from_millis(500))
+        .connect()
+        .await?;
     let pw = MyPickWords {
-        sign_svc_addr: args.sign_svc_addr,
+        sign_words_channel: channel,
     };
+    let addr = format!("0.0.0.0:{}", args.port).parse()?;
 
     info!("starting server on {}", addr);
     let (tx, rx) = oneshot::channel::<()>();
