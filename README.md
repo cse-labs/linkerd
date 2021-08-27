@@ -96,7 +96,15 @@ Clicking on `Send Request` should open a new panel in Visual Studio Code with th
 
 ![REST Client example response](./images/RESTClientResponse.png)
 
-## 
+## Ports
+
+## Linkerd, Grafana, and Jaeger views
+
+## Quick Tour
+
+## Next Steps
+
+> [Makefile](./Makefile) is a good place to start exploring
 
 ## Jump Box
 
@@ -121,10 +129,6 @@ A `jump box` pod is created so that you can execute commands `in the cluster`
 - Press `s` to Toggle AutoScroll
 - Press `w` to Toggle Wrap
 - Review logs that will be sent to Log Analytics when configured
-
-## Next Steps
-
-> [Makefile](./Makefile) is a good place to start exploring
 
 ## Trademarks
 
