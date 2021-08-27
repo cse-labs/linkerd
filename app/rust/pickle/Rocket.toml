@@ -3,6 +3,8 @@ address = "0.0.0.0"
 port = 80
 words-svc-addr = "http://words-svc:9090"
 sign-svc-addr = "http://signing-svc:9090"
+tracing-service-name = "web-svc"
+trace-collector-endpoint = "http://collector.linkerd-jaeger:14268/api/traces"
 
 [debug]
 address = "0.0.0.0"
