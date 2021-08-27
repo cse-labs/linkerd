@@ -7,18 +7,20 @@ edition = "2018"
 [dependencies]
 b3 = { path = "../b3" }
 base64 = "0.13.0"
+bytes = "0.4"
 dill = { path = "../dill" }
 env_logger = "0.9.0"
 futures = "0.3"
 log = "0.4.14"
-openssl = { version = "0.10", features = ["vendored"] }
 opentelemetry = { version = "0.16", features = ["rt-tokio", "trace"] }
 opentelemetry-jaeger = { version = "0.15", features = ["collector_client", "reqwest_collector_client", "rt-tokio"] }
 prost = "0.8"
 prost-types = "0.8"
+ring = "0.16"
 rocket = "0.5.0-rc.1"
 serde = "1.0"
 serde_derive = "1.0"
+simple-error = "0.2"
 structopt = "0.3"
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "signal"] }
 tonic = "0.5.2"
