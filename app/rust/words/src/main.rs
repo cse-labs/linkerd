@@ -3,13 +3,20 @@
 //
 
 use b3::{ExMetadataMap, InMetadataMap};
-use dill::dill::pick_words_server::{PickWords, PickWordsServer};
-use dill::dill::sign_words_client::SignWordsClient;
-use dill::dill::{SignRequest, WordsRequest, WordsResponse};
+use dill::dill::{
+    pick_words_server::{PickWords, PickWordsServer},
+    sign_words_client::SignWordsClient,
+    SignRequest, WordsRequest, WordsResponse,
+};
 use futures::FutureExt;
-use log::{error, info};
+use log::{error, info, warn};
 use names::Generator;
-use opentelemetry::global;
+use opentelemetry::{
+    global,
+    global::shutdown_tracer_provider,
+    trace::{noop::NoopTracerProvider, Span, TraceContextExt, Tracer},
+    Context,
+};
 use rocket::serde::Deserialize;
 use std::time::Duration;
 use structopt::StructOpt;
@@ -18,10 +25,13 @@ use tonic::{
     transport::{Channel, Server},
     Request, Response, Status,
 };
-use tower::timeout::Timeout;
 
 #[derive(StructOpt, Deserialize)]
 struct Args {
+    // port for the grpc service to listen on
+    #[structopt(short = "p", long = "port", default_value = "9090")]
+    port: u16,
+
     // address of the SignWords grpc service
     #[structopt(
         short = "s",
@@ -30,15 +40,26 @@ struct Args {
     )]
     sign_svc_addr: String,
 
-    // port for the grpc service to listen on
-    #[structopt(short = "p", long = "port", default_value = "9090")]
-    port: u16,
+    // service name
+    #[structopt(
+        short = "n",
+        long = "tracing-service-name",
+        default_value = "words-svc"
+    )]
+    service_name: String,
+
+    // jaeger collector endpoint
+    #[structopt(
+        short = "t",
+        long = "trace-collector-endpoint",
+        default_value = "http://collector.linkerd-jaeger:14268/api/traces"
+    )]
+    trace_collector_endpoint: String,
 }
 
 // grpc service
-#[derive(Default)]
 pub struct MyPickWords {
-    sign_svc_addr: String,
+    sign_words_channel: Channel,
 }
 
 /// Returns a list of adjectives followed by a noun
@@ -79,47 +100,46 @@ impl PickWords for MyPickWords {
         let count = words_request.count.into();
         let sign = words_request.signed.into();
 
+        let mut w_span = global::tracer("words").start_with_context("generating words", cx.clone());
         let words = generate_words(count);
+        w_span.end();
 
         match sign {
-            true => {
-                let v = &words;
-
-                let addr = self.sign_svc_addr.clone();
-                let channel = match Channel::from_shared(addr).unwrap().connect().await {
-                    Ok(channel) => channel,
-                    Err(e) => {
-                        error!("Failed to create SignWords channel: {}", e);
-                        return Err(Status::unknown(format!(
-                            "error creating channel to signing service"
-                        )));
-                    }
-                };
-                let timeout_channel = Timeout::new(channel, Duration::from_millis(500));
-                let mut client = SignWordsClient::new(timeout_channel);
-
-                let mut req = tonic::Request::new(SignRequest { words: v.to_vec() });
-
-                global::get_text_map_propagator(|propagator| {
-                    propagator.inject_context(&cx, &mut InMetadataMap(req.metadata_mut()));
-                });
-
-                let response = client.sign_words(req).await;
-                match response {
-                    Ok(response) => return Ok(response),
-                    Err(e) => {
-                        error!("Failed to call SignWords service: {}", e);
-                        return Err(Status::unknown(format!("error invoking signing service")));
-                    }
-                };
-            }
             false => {
                 let reply = WordsResponse {
                     words: words,
                     ..Default::default()
                 };
-
                 return Ok(Response::new(reply));
+            }
+            true => {
+                let mut s_span =
+                    global::tracer("words").start_with_context("requesting signature", cx);
+
+                let v = &words;
+                let mut req = tonic::Request::new(SignRequest { words: v.to_vec() });
+
+                let grpc_cx =
+                    &Context::new().with_remote_span_context(s_span.span_context().clone());
+                global::get_text_map_propagator(|propagator| {
+                    propagator.inject_context(grpc_cx, &mut InMetadataMap(req.metadata_mut()));
+                });
+
+                let response = SignWordsClient::new(self.sign_words_channel.clone())
+                    .sign_words(req)
+                    .await;
+                match response {
+                    Ok(response) => {
+                        s_span.end();
+                        return Ok(response);
+                    }
+                    Err(e) => {
+                        error!("Failed to call SignWords service: {}", e);
+                        s_span.record_exception(&e);
+                        s_span.end();
+                        return Err(Status::unknown(format!("error invoking signing service")));
+                    }
+                };
             }
         }
     }
@@ -129,16 +149,36 @@ impl PickWords for MyPickWords {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     let args = Args::from_args();
-    global::set_text_map_propagator(b3::Propagator::new());
-    info!("depa");
 
-    let addr = format!("0.0.0.0:{}", args.port).parse()?;
-    let pw = MyPickWords {
-        sign_svc_addr: args.sign_svc_addr,
+    info!("Service {}", args.service_name);
+
+    global::set_text_map_propagator(b3::Propagator::new());
+    match opentelemetry_jaeger::new_pipeline()
+        .with_service_name(args.service_name)
+        .with_collector_endpoint(args.trace_collector_endpoint.clone())
+        .build_batch(opentelemetry::runtime::Tokio)
+    {
+        Ok(provider) => {
+            global::set_tracer_provider(provider);
+            info!("Tracing to collector {}", args.trace_collector_endpoint);
+        }
+        Err(e) => {
+            warn!("Failed to setup tracer: {}", e);
+            global::set_tracer_provider(NoopTracerProvider::new());
+        }
     };
 
-    info!("starting server");
-    info!("WordsServer listening on {}", addr);
+    let channel = Channel::from_shared(args.sign_svc_addr.clone())
+        .unwrap()
+        .timeout(Duration::from_millis(500))
+        .connect()
+        .await?;
+    let pw = MyPickWords {
+        sign_words_channel: channel,
+    };
+    let addr = format!("0.0.0.0:{}", args.port).parse()?;
+
+    info!("starting server on {}", addr);
     let (tx, rx) = oneshot::channel::<()>();
     let server = tokio::spawn(async move {
         Server::builder()
@@ -157,6 +197,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     tx.send(()).unwrap();
     server.await.unwrap();
+    shutdown_tracer_provider();
     Ok(())
 }
 

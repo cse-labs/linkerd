@@ -1,4 +1,4 @@
-// Most of this file is copied from 
+// Most of this file is copied from
 // https://github.com/open-telemetry/opentelemetry-rust/blob/main/opentelemetry-zipkin/src/propagator/mod.rs
 // because the full opentelemetry-zipkin crate has a dependency on openssl
 // that complicates building and would require larger images for all services.

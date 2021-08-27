@@ -21,6 +21,8 @@ additionalArguments:
  - "--tracing.jaeger=true"
  - "--tracing.jaeger.gen128Bit=true"
  - "--tracing.jaeger.propagation=b3"
+ - "--tracing.jaeger.samplingType=probabilistic"
+ - "--tracing.jaeger.samplingParam=0.5"
  - "--tracing.jaeger.traceContextHeaderName=b3"
  - "--tracing.jaeger.collector.endpoint=http://collector.linkerd-jaeger:55678"
  - "--tracing.jaeger.collector.user=collector"
