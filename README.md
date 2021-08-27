@@ -1,8 +1,14 @@
 # Kubernetes linkerd, Rust, and grpc Codespace
 
-Inner loop Kubernetes development, using `k3d` running in [GitHub Codespaces](https://github.com/features/codespaces), created from [Kubernetes Dev Cluster on Codespaces Template](https://github.com/retaildevcrews/kind-k3d-codespaces-template)
+This project is an inner loop Kubernetes development example, using `k3d` running in [GitHub Codespaces](https://github.com/features/codespaces), created from [Kubernetes Dev Cluster on Codespaces Template](https://github.com/retaildevcrews/kind-k3d-codespaces-template).
 
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
+
+The opentelemetry-rust code in the app/rust/b3 crate is licensed under the
+![Apache License 2.0](https://github.com/open-telemetry/opentelemetry-rust/blob/main/LICENSE),
+a permissive license whose main conditions require preservation of copyright and license notices.
+Contributors provide an express grant of patent rights. Licensed works, modifications, and larger
+works may be distributed under different terms and without source code
 
 ## Overview
 
@@ -12,28 +18,55 @@ We use this for `inner-loop` Kubernetes development. Note that it is not appropr
 
 > This Codespace is tested with `zsh` and `oh-my-zsh` - it "should" work with bash ...
 
+## Software Used
+
+This project demonstrates several open source projects used in combination.
+
+- ![K3s](https://k3s.io/):Lightweight ![Kubernetes](https://kubernetes.io/)
+- ![K3D](https://k3d.io/): K3s in Docker
+- ![Docker](https://www.docker.com/), including ![Docker Compose](https://docs.docker.com/compose/)
+- ![Linkerd](https://linkerd.io/) service mesh, configured with
+  - ![Prometheus](https://prometheus.io/) for monitoring
+  - ![Grafana](https://grafana.com/) for observability
+  - ![Jaeger](https://www.jaegertracing.io/) for distributed tracing
+- ![Traefik](https://traefik.io/) for ingress and initial trace span creation
+- ![Helm](https://helm.sh/) is used to deploy Traefik
+- ![Rust](https://www.rust-lang.org/) is the language used to write the example services. Important crates used include
+  - ![tonic](https://crates.io/crates/tonic) for ![grpc](https://grpc.io/) support
+  - ![rocket](https://rocket.rs/) web framework
+  - ![opentelemetry](https://crates.io/crates/opentelemetry) and ![opentelemetry-jaeger](https://crates.io/crates/opentelemetry-jaeger) for distributed tracing
+  - ![okapi](https://crates.io/crates/okapi) for web api documentation
+  - ![ring](https://crates.io/crates/ring) for cryptographic signing
+  - ![structopt](https://crates.io/crates/structopt) for command line argument handling
+- ![Fluent Bit](https://fluentbit.io/) for log handling
+- ![k9s](https://k9scli.io/) terminal UI for Kubernetes
+- ![GitHub](https://github.com/) ![Codespaces](https://github.com/features/codespaces)
+_ ![GNU Make](https://www.gnu.org/software/make/)
+
+## A Note on Secret Handling
+
+This project uses a Codespaces secret `PICKLE_PRIVATE_KEY` to store a base64-encoded RSA PSS DER certificate to use in the Codespaces
+environment. The key file is copied into an image file as part of the build. In a production or integration environment, the key would
+be provided via a secure secrets store, like ![Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/).
+
 ## Open with Codespaces
 
 - Click the `Code` button on your repo
 - Click `Open with Codespaces`
 - Click `New Codespace`
-- Choose the `4 core` or `8 core` option
+- Choose the `8 core` or `4 core` option
 
 ## Build and Deploy Cluster
 
-By default the solution will create a `kind` cluster. If you want to use [k3d](https://k3d.io/), run the make commands from the `k3d` directory
+This project uses `make` to drive K3s cluster creation and setup and to build and deploy the services in the app. Some of the
+Linkerd-related images can go to `ImagePullBackoff` when installing Linkerd and its add-ons. The make file provides targets to
+pre-load the images in the local docker cache and the registry built into the K3s cluster.
 
-  ```bash
+`make bootstrap` will delete any existing K3s cluster, pull the Linkerd-related images, create a K3s cluster, import the images into the
+K3s cluster's registry, and then setup Linkerd and its add-ons. When that is done, you will have a K3s cluster ready to host the services.
 
-  # (optional) use the k3d makefile
-  cd k3d
-
-  # build the cluster
-  make all
-
-  ```
-
-![Running Codespace](./images/RunningCodespace.png)
+`make loop` (short for de inner loop) will build the services, create the container images for them, deploy them in the cluster, and setup
+Traefik ingress in the namespace.
 
 ## Validate deployment with k9s
 
@@ -41,18 +74,19 @@ By default the solution will create a `kind` cluster. If you want to use [k3d](h
   - Type `k9s` and press enter
   - Press `0` to select all namespaces
   - Wait for all pods to be in the `Running` state (look for the `STATUS` column)
-  - Use the arrow key to select `nsga-memory` then press the `l` key to view logs from the pod
+  - Use the arrow key to select `picke  web-...` then press the `l` key to view logs from the pod
   - To go back, press the `esc` key
   - To view other deployed resources - press `shift + :` followed by the deployment type (e.g. `secret`, `services`, `deployment`, etc).
   - To exit - `:q <enter>`
 
 ![k9s](./images/k9s.png)
 
-### Other interesting endpoints
+## Interesting Endpoints
 
 Open [curl.http](./curl.http)
 
-> [curl.http](./curl.http) is used in conjuction with the Visual Studio Code [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) extension.
+> [curl.http](./curl.http) is used in conjuction with the ![Visual Studio Code](https://code.visualstudio.com/)
+[REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) extension.
 >
 > When you open [curl.http](./curl.http), you should see a clickable `Send Request` text above each of the URLs
 
@@ -61,6 +95,8 @@ Open [curl.http](./curl.http)
 Clicking on `Send Request` should open a new panel in Visual Studio Code with the response from that request like so:
 
 ![REST Client example response](./images/RESTClientResponse.png)
+
+## 
 
 ## Jump Box
 
