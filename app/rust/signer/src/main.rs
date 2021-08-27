@@ -124,6 +124,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Service {}", args.service_name);
 
+    // Setup tracing
     global::set_text_map_propagator(b3::Propagator::new());
     match opentelemetry_jaeger::new_pipeline()
         .with_service_name(args.service_name)
@@ -140,6 +141,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
+    // Setup signing key
     let mut bytes: [u8; 1192] = [0; 1192];
     let mut file = File::open("keys/pickle_key.der")?;
     file.read(&mut bytes[..])?;
@@ -149,6 +151,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     drop(file);
 
+    // Start service
     let addr = format!("0.0.0.0:{}", args.port).parse()?;
 
     info!("starting server on {}", addr);
