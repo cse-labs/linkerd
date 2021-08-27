@@ -6,8 +6,8 @@
 use b3::ExMetadataMap;
 use base64::encode;
 use dill::dill::{
-    {SignRequest, WordsResponse},
     sign_words_server::{SignWords, SignWordsServer},
+    {SignRequest, WordsResponse},
 };
 use futures::FutureExt;
 use log::{error, info, warn};
@@ -20,10 +20,7 @@ use openssl::{
 use opentelemetry::{
     global,
     global::shutdown_tracer_provider,
-    trace::{
-        Span, Tracer,
-        noop::NoopTracerProvider,
-    }
+    trace::{noop::NoopTracerProvider, Span, Tracer},
 };
 use rocket::serde::Deserialize;
 use std::{
@@ -39,18 +36,14 @@ use tonic::{transport::Server, Request, Response, Status};
 #[derive(StructOpt, Deserialize)]
 struct Args {
     // port for grpc service to listen on
-    #[structopt(
-        short = "p",
-        long = "port",
-        default_value = "9090",
-    )]
+    #[structopt(short = "p", long = "port", default_value = "9090")]
     port: u16,
 
     // service name
     #[structopt(
         short = "n",
         long = "tracing-service-name",
-        default_value = "signing-svc",
+        default_value = "signing-svc"
     )]
     service_name: String,
 
@@ -58,7 +51,7 @@ struct Args {
     #[structopt(
         short = "t",
         long = "trace-collector-endpoint",
-        default_value = "http://collector.linkerd-jaeger:14268/api/traces",
+        default_value = "http://collector.linkerd-jaeger:14268/api/traces"
     )]
     trace_collector_endpoint: String,
 }

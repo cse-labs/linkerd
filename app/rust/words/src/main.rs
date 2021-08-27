@@ -4,21 +4,18 @@
 
 use b3::{ExMetadataMap, InMetadataMap};
 use dill::dill::{
-    SignRequest, WordsRequest, WordsResponse,
     pick_words_server::{PickWords, PickWordsServer},
     sign_words_client::SignWordsClient,
+    SignRequest, WordsRequest, WordsResponse,
 };
 use futures::FutureExt;
 use log::{error, info, warn};
 use names::Generator;
 use opentelemetry::{
-    Context,
     global,
     global::shutdown_tracer_provider,
-    trace::{
-        Span, TraceContextExt, Tracer,
-        noop::NoopTracerProvider,
-    }
+    trace::{noop::NoopTracerProvider, Span, TraceContextExt, Tracer},
+    Context,
 };
 use rocket::serde::Deserialize;
 use std::time::Duration;
@@ -32,18 +29,14 @@ use tonic::{
 #[derive(StructOpt, Deserialize)]
 struct Args {
     // port for the grpc service to listen on
-    #[structopt(
-        short = "p",
-        long = "port",
-        default_value = "9090",
-    )]
+    #[structopt(short = "p", long = "port", default_value = "9090")]
     port: u16,
 
     // address of the SignWords grpc service
     #[structopt(
         short = "s",
         long = "sign-svc-addr",
-        default_value = "http://signing-svc:9090",
+        default_value = "http://signing-svc:9090"
     )]
     sign_svc_addr: String,
 
@@ -51,7 +44,7 @@ struct Args {
     #[structopt(
         short = "n",
         long = "tracing-service-name",
-        default_value = "words-svc",
+        default_value = "words-svc"
     )]
     service_name: String,
 
@@ -59,7 +52,7 @@ struct Args {
     #[structopt(
         short = "t",
         long = "trace-collector-endpoint",
-        default_value = "http://collector.linkerd-jaeger:14268/api/traces",
+        default_value = "http://collector.linkerd-jaeger:14268/api/traces"
     )]
     trace_collector_endpoint: String,
 }
@@ -120,17 +113,21 @@ impl PickWords for MyPickWords {
                 return Ok(Response::new(reply));
             }
             true => {
-                let mut s_span = global::tracer("words").start_with_context("requesting signature", cx);
-                
+                let mut s_span =
+                    global::tracer("words").start_with_context("requesting signature", cx);
+
                 let v = &words;
                 let mut req = tonic::Request::new(SignRequest { words: v.to_vec() });
 
-                let grpc_cx = &Context::new().with_remote_span_context(s_span.span_context().clone());
+                let grpc_cx =
+                    &Context::new().with_remote_span_context(s_span.span_context().clone());
                 global::get_text_map_propagator(|propagator| {
                     propagator.inject_context(grpc_cx, &mut InMetadataMap(req.metadata_mut()));
                 });
-           
-                let response = SignWordsClient::new(self.sign_words_channel.clone()).sign_words(req).await;
+
+                let response = SignWordsClient::new(self.sign_words_channel.clone())
+                    .sign_words(req)
+                    .await;
                 match response {
                     Ok(response) => {
                         s_span.end();
