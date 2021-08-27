@@ -8,33 +8,27 @@ extern crate rocket;
 
 use b3::{HeaderExtractor, InMetadataMap, RocketHttpHeaderMap};
 use dill::dill::{
-    SignRequest, WordsRequest, WordsResponse,
-    pick_words_client::PickWordsClient,
-    sign_words_client::SignWordsClient,
+    pick_words_client::PickWordsClient, sign_words_client::SignWordsClient, SignRequest,
+    WordsRequest, WordsResponse,
 };
 use log::error;
 use once_cell::sync::OnceCell;
 use opentelemetry::{
-    Context,
     global,
-    trace::{
-        Span, Tracer, TraceContextExt,
-        noop::NoopTracerProvider,
-    }
+    trace::{noop::NoopTracerProvider, Span, TraceContextExt, Tracer},
+    Context,
 };
 use rocket::{
     get,
     response::content::Html,
-    serde::{Deserialize, Serialize, json::Json}
+    serde::{json::Json, Deserialize, Serialize},
 };
 use rocket_okapi::{
-    openapi, routes_with_openapi, JsonSchema,
+    openapi, routes_with_openapi,
     swagger_ui::{make_swagger_ui, SwaggerUIConfig},
+    JsonSchema,
 };
-use std::{
-    panic,
-    time::Duration,
-};
+use std::{panic, time::Duration};
 use tonic::transport::Channel;
 
 // App-specific config provided using Rocket config
@@ -65,12 +59,14 @@ struct Words {
 #[openapi]
 #[get("/")]
 fn index() -> Html<&'static str> {
-    Html(r#"<html>
+    Html(
+        r#"<html>
         <body>
             <a href="swagger/index.html">Swagger docs</a><br/>
             <a href="api/v1.0/openapi.json">OpenAPI docs</a>
         </body>
-    <html>"#)
+    <html>"#,
+    )
 }
 
 #[openapi]
@@ -89,7 +85,7 @@ async fn words(
         Some(cnt) => cnt,
         None => 3,
     };
-    
+
     let mut client = PickWordsClient::new(WORDS_CHANNEL.get().unwrap().clone());
     let mut request = tonic::Request::new(WordsRequest {
         count: u32::from(cnt),
@@ -196,7 +192,10 @@ async fn rocket() -> _ {
     {
         Ok(provider) => {
             global::set_tracer_provider(provider);
-            info!("Tracing to collector {}", &CONFIG.get().unwrap().trace_collector_endpoint);
+            info!(
+                "Tracing to collector {}",
+                &CONFIG.get().unwrap().trace_collector_endpoint
+            );
         }
         Err(e) => {
             warn!("Failed to setup tracer: {}", e);
@@ -210,10 +209,10 @@ async fn rocket() -> _ {
         .connect()
         .await
     {
-            Ok(channel) => channel,
-            Err(e) => {
-                panic!("Failed to create Signs channel: {}", e);
-            },
+        Ok(channel) => channel,
+        Err(e) => {
+            panic!("Failed to create Signs channel: {}", e);
+        }
     };
     SIGN_CHANNEL.set(sign_channel).unwrap();
 
@@ -223,10 +222,10 @@ async fn rocket() -> _ {
         .connect()
         .await
     {
-            Ok(channel) => channel,
-            Err(e) => {
-                panic!("Failed to create Words channel: {}", e);
-            },
+        Ok(channel) => channel,
+        Err(e) => {
+            panic!("Failed to create Words channel: {}", e);
+        }
     };
     WORDS_CHANNEL.set(words_channel).unwrap();
 
