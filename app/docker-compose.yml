@@ -5,12 +5,12 @@ services:
     build:
       context: .
       dockerfile: pickle.Dockerfile
-  depa:
+  words:
     image: pickle_words:local
     build:
       context: .
       dockerfile: words.Dockerfile
-  depb:
+  signer:
     image: pickle_signer:local
     build:
       context: .
