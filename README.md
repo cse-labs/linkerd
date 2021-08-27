@@ -74,7 +74,7 @@ Traefik ingress in the namespace.
   - Type `k9s` and press enter
   - Press `0` to select all namespaces
   - Wait for all pods to be in the `Running` state (look for the `STATUS` column)
-  - Use the arrow key to select `picke  web-...` then press the `l` key to view logs from the pod
+  - Use the arrow key to select `pickle  web-...` then press the `l` key to view logs from the pod
   - To go back, press the `esc` key
   - To view other deployed resources - press `shift + :` followed by the deployment type (e.g. `secret`, `services`, `deployment`, etc).
   - To exit - `:q <enter>`
