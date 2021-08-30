@@ -6,7 +6,7 @@
 *.dylib
 
 # Secrets
-**/pickle.key
+**/pickle_key.der
 
 # Rust outputs
 **/debug/

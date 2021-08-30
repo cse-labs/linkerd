@@ -5,24 +5,28 @@
 
 use b3::ExMetadataMap;
 use base64::encode;
+use bytes::BytesMut;
 use dill::dill::{
     sign_words_server::{SignWords, SignWordsServer},
     {SignRequest, WordsResponse},
 };
 use futures::FutureExt;
 use log::{error, info, warn};
-use openssl::{
-    hash::MessageDigest,
-    pkey::{PKey, Private},
-    rsa::Rsa,
-    sign::Signer,
-};
 use opentelemetry::{
     global,
     global::shutdown_tracer_provider,
     trace::{noop::NoopTracerProvider, Span, Tracer},
 };
+use rand::SystemRandom;
+use ring::{
+    rand,
+    signature::{
+        RsaKeyPair,
+        RSA_PSS_SHA256,
+    },
+};
 use rocket::serde::Deserialize;
+use simple_error::SimpleError;
 use std::{
     convert::TryFrom,
     fs::File,
@@ -57,7 +61,7 @@ struct Args {
 }
 
 pub struct MySignWords {
-    keypair: PKey<Private>,
+    rsa_key_pair: RsaKeyPair,
 }
 
 #[tonic::async_trait]
@@ -71,18 +75,34 @@ impl SignWords for MySignWords {
         });
         let mut span = global::tracer("signer").start_with_context("signing words", cx);
 
-        let mut signer = Signer::new(MessageDigest::sha256(), &self.keypair).unwrap();
+        // Prepare the message buffer for signing
         let words = request.into_inner().words;
+        let mut buffer = BytesMut::new();
         for w in &words {
-            signer.update(w.as_bytes()).unwrap();
+            buffer.extend_from_slice(w.as_bytes());
         }
         let millis = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_millis();
         let timestamp = u64::try_from(millis).unwrap();
-        signer.update(&timestamp.to_ne_bytes()).unwrap();
-        let signature = encode(signer.sign_to_vec().unwrap());
+        buffer.extend_from_slice(&timestamp.to_ne_bytes());
+        let message = buffer.freeze();
+
+        // Sign the message
+        let key_pair = &self.rsa_key_pair;
+        let rng = SystemRandom::new();
+        let mut signature = vec![0; key_pair.public_modulus_len()];
+        key_pair.sign(
+            &RSA_PSS_SHA256,
+            &rng,
+            &message,
+            &mut signature
+        ).map_err(|_| {
+            warn!("OOM signing message");
+            span.record_exception(&SimpleError::new("OOM while signing message"));
+        }).unwrap();
+        let signature = encode(signature);
         span.add_event("signed words".to_string(), Vec::new());
 
         span.end();
@@ -104,6 +124,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("Service {}", args.service_name);
 
+    // Setup tracing
     global::set_text_map_propagator(b3::Propagator::new());
     match opentelemetry_jaeger::new_pipeline()
         .with_service_name(args.service_name)
@@ -120,15 +141,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    let mut bytes: [u8; 8192] = [0; 8192];
-    let mut file = File::open("keys/pickle.key")?;
+    // Setup signing key
+    let mut bytes: [u8; 1192] = [0; 1192];
+    let mut file = File::open("keys/pickle_key.der")?;
     file.read(&mut bytes[..])?;
-    let rsakey = Rsa::private_key_from_pem(&bytes).unwrap();
+    let key_pair = RsaKeyPair::from_der(&bytes).unwrap();
     let sw = MySignWords {
-        keypair: PKey::from_rsa(rsakey).unwrap(),
+        rsa_key_pair: key_pair,
     };
     drop(file);
 
+    // Start service
     let addr = format!("0.0.0.0:{}", args.port).parse()?;
 
     info!("starting server on {}", addr);
