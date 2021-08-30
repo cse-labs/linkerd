@@ -2,10 +2,10 @@
 
 This project is an inner loop Kubernetes development example, using `k3d` running in [GitHub Codespaces](https://github.com/features/codespaces), created from [Kubernetes Dev Cluster on Codespaces Template](https://github.com/retaildevcrews/kind-k3d-codespaces-template).
 
-![License](https://img.shields.io/badge/license-MIT-green.svg)
+[License](https://img.shields.io/badge/license-MIT-green.svg)
 
 The opentelemetry-rust code in the app/rust/b3 crate is licensed under the
-![Apache License 2.0](https://github.com/open-telemetry/opentelemetry-rust/blob/main/LICENSE),
+[Apache License 2.0](https://github.com/open-telemetry/opentelemetry-rust/blob/main/LICENSE),
 a permissive license whose main conditions require preservation of copyright and license notices.
 Contributors provide an express grant of patent rights. Licensed works, modifications, and larger
 works may be distributed under different terms and without source code
@@ -22,32 +22,32 @@ We use this for `inner-loop` Kubernetes development. Note that it is not appropr
 
 This project demonstrates several open source projects used in combination.
 
-- ![K3s](https://k3s.io/):Lightweight ![Kubernetes](https://kubernetes.io/)
-- ![K3D](https://k3d.io/): K3s in Docker
-- ![Docker](https://www.docker.com/), including ![Docker Compose](https://docs.docker.com/compose/)
-- ![Linkerd](https://linkerd.io/) service mesh, configured with
-  - ![Prometheus](https://prometheus.io/) for monitoring
-  - ![Grafana](https://grafana.com/) for observability
-  - ![Jaeger](https://www.jaegertracing.io/) for distributed tracing
-- ![Traefik](https://traefik.io/) for ingress and initial trace span creation
-- ![Helm](https://helm.sh/) is used to deploy Traefik
-- ![Rust](https://www.rust-lang.org/) is the language used to write the example services. Important crates used include
-  - ![tonic](https://crates.io/crates/tonic) for ![grpc](https://grpc.io/) support
-  - ![rocket](https://rocket.rs/) web framework
-  - ![opentelemetry](https://crates.io/crates/opentelemetry) and ![opentelemetry-jaeger](https://crates.io/crates/opentelemetry-jaeger) for distributed tracing
-  - ![okapi](https://crates.io/crates/okapi) for web api documentation
-  - ![ring](https://crates.io/crates/ring) for cryptographic signing
-  - ![structopt](https://crates.io/crates/structopt) for command line argument handling
-- ![Fluent Bit](https://fluentbit.io/) for log handling
-- ![k9s](https://k9scli.io/) terminal UI for Kubernetes
-- ![GitHub](https://github.com/) ![Codespaces](https://github.com/features/codespaces)
-_ ![GNU Make](https://www.gnu.org/software/make/)
+- [K3s](https://k3s.io/):Lightweight [Kubernetes](https://kubernetes.io/)
+- [K3D](https://k3d.io/): K3s in Docker
+- [Docker](https://www.docker.com/), including [Docker Compose](https://docs.docker.com/compose/)
+- [Linkerd](https://linkerd.io/) service mesh, configured with
+  - [Prometheus](https://prometheus.io/) for monitoring
+  - [Grafana](https://grafana.com/) for observability
+  - [Jaeger](https://www.jaegertracing.io/) for distributed tracing
+- [Traefik](https://traefik.io/) for ingress and initial trace span creation
+- [Helm](https://helm.sh/) is used to deploy Traefik
+- [Rust](https://www.rust-lang.org/) is the language used to write the example services. Important crates used include
+  - [tonic](https://crates.io/crates/tonic) for [grpc](https://grpc.io/) support
+  - [rocket](https://rocket.rs/) web framework
+  - [opentelemetry](https://crates.io/crates/opentelemetry) and [opentelemetry-jaeger](https://crates.io/crates/opentelemetry-jaeger) for distributed tracing
+  - [okapi](https://crates.io/crates/okapi) for web api documentation
+  - [ring](https://crates.io/crates/ring) for cryptographic signing
+  - [structopt](https://crates.io/crates/structopt) for command line argument handling
+- [Fluent Bit](https://fluentbit.io/) for log handling
+- [k9s](https://k9scli.io/) terminal UI for Kubernetes
+- [GitHub](https://github.com/) [Codespaces](https://github.com/features/codespaces)
+_ [GNU Make](https://www.gnu.org/software/make/)
 
 ## A Note on Secret Handling
 
 This project uses a Codespaces secret `PICKLE_PRIVATE_KEY` to store a base64-encoded RSA PSS DER certificate to use in the Codespaces
 environment. The key file is copied into an image file as part of the build. In a production or integration environment, the key would
-be provided via a secure secrets store, like ![Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/).
+be provided via a secure secrets store, like [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/).
 
 ## Open with Codespaces
 
@@ -65,7 +65,7 @@ pre-load the images in the local docker cache and the registry built into the K3
 `make bootstrap` will delete any existing K3s cluster, pull the Linkerd-related images, create a K3s cluster, import the images into the
 K3s cluster's registry, and then setup Linkerd and its add-ons. When that is done, you will have a K3s cluster ready to host the services.
 
-`make loop` (short for de inner loop) will build the services, create the container images for them, deploy them in the cluster, and setup
+`make loop` (short for dev inner loop) will build the services, create the container images for them, deploy them in the cluster, and setup
 Traefik ingress in the namespace.
 
 ## Validate deployment with k9s
@@ -85,7 +85,7 @@ Traefik ingress in the namespace.
 
 Open [curl.http](./curl.http)
 
-> [curl.http](./curl.http) is used in conjuction with the ![Visual Studio Code](https://code.visualstudio.com/)
+> [curl.http](./curl.http) is used in conjuction with the [Visual Studio Code](https://code.visualstudio.com/)
 [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) extension.
 >
 > When you open [curl.http](./curl.http), you should see a clickable `Send Request` text above each of the URLs
