@@ -98,6 +98,12 @@ Clicking on `Send Request` should open a new panel in Visual Studio Code with th
 
 ## Ports
 
+Click on the `PORTS` tab in the lower panel. The Codespace has one port mapped to the Traefik ingress for the app.
+
+![Ports](./images/Ports.png)
+
+Choose "Open in Browser" on the "Pickle (30088)" row. When your browser lands on the root page for the app, click the "Swagger docs" link to try out the API.
+
 ## Linkerd, Grafana, and Jaeger views
 
 ## Quick Tour
@@ -129,6 +135,10 @@ A `jump box` pod is created so that you can execute commands `in the cluster`
 - Press `s` to Toggle AutoScroll
 - Press `w` to Toggle Wrap
 - Review logs that will be sent to Log Analytics when configured
+
+## Troubleshooting
+
+
 
 ## Trademarks
 
