@@ -1,6 +1,6 @@
-# Kubernetes linkerd, Rust, and grpc Codespace
+# Kubernetes, Linkerd, Rust, and grpc Codespace
 
-This project is an inner loop Kubernetes development example, using `k3d` running in [GitHub Codespaces](https://github.com/features/codespaces), created from [Kubernetes Dev Cluster on Codespaces Template](https://github.com/retaildevcrews/kind-k3d-codespaces-template).
+This project is an inner loop Kubernetes development example, using K3D running in [GitHub Codespaces](https://github.com/features/codespaces), created from [Kubernetes Dev Cluster on Codespaces Template](https://github.com/retaildevcrews/kind-k3d-codespaces-template).
 
 [License](https://img.shields.io/badge/license-MIT-green.svg)
 
@@ -12,17 +12,17 @@ works may be distributed under different terms and without source code
 
 ## Overview
 
-This project sets up a Kubernetes developer cluster using `K3d` with linkerd in a `GitHub Codespace` or local `Dev Container`.
+This project sets up a Kubernetes developer cluster using K3D with Linkerd in a GitHub Codespace or local Dev Container.
 
-We use this for `inner-loop` Kubernetes development. Note that it is not appropriate for production use (but is a great `Developer Experience`)
+We use this for inner-loop Kubernetes development. Note that it is not appropriate for production use (but is a great Developer Experience).
 
-> This Codespace is tested with `zsh` and `oh-my-zsh` - it "should" work with bash ...
+> This Codespace is tested with `zsh` and `oh-my-zsh` - it "should" work with `bash` ...
 
 ## Software Used
 
 This project demonstrates several open source projects used in combination.
 
-- [K3s](https://k3s.io/):Lightweight [Kubernetes](https://kubernetes.io/)
+- [K3s](https://k3s.io/): Lightweight [Kubernetes](https://kubernetes.io/)
 - [K3D](https://k3d.io/): K3s in Docker
 - [Docker](https://www.docker.com/), including [Docker Compose](https://docs.docker.com/compose/)
 - [Linkerd](https://linkerd.io/) service mesh, configured with
@@ -59,11 +59,11 @@ be provided via a secure secrets store, like [Azure Key Vault](https://azure.mic
 ## Build and Deploy Cluster
 
 This project uses `make` to drive K3s cluster creation and setup and to build and deploy the services in the app. Some of the
-Linkerd-related images can go to `ImagePullBackoff` when installing Linkerd and its add-ons. The make file provides targets to
+Linkerd-related images can go to `ImagePullBackoff` when installing Linkerd and its extensions. The make file provides targets to
 pre-load the images in the local docker cache and the registry built into the K3s cluster.
 
 `make bootstrap` will delete any existing K3s cluster, pull the Linkerd-related images, create a K3s cluster, import the images into the
-K3s cluster's registry, and then setup Linkerd and its add-ons. When that is done, you will have a K3s cluster ready to host the services.
+K3s cluster's registry, and then setup Linkerd and its extensions. When that is done, you will have a K3s cluster ready to host the services.
 
 `make loop` (short for dev inner loop) will build the services, create the container images for them, deploy them in the cluster, and setup
 Traefik ingress in the namespace.
@@ -106,7 +106,9 @@ Choose "Open in Browser" on the "Pickle (30088)" row. When your browser lands on
 
 ## Linkerd, Grafana, and Jaeger views
 
-## Quick Tour
+In this project, Linkerd is setup with its viz and jaeger extensions.
+
+## Quick Tour of the Project
 
 ## Next Steps
 
