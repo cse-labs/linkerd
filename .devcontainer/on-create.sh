@@ -14,13 +14,4 @@ docker network create kind
 k3d registry create registry.localhost --port 5000
 docker network connect kind k3d-registry.localhost
 
-# push ngsa-app to local repo
-docker pull ghcr.io/retaildevcrews/ngsa-app:beta
-docker tag ghcr.io/retaildevcrews/ngsa-app:beta k3d-registry.localhost:5000/ngsa:local
-docker push k3d-registry.localhost:5000/ngsa:local
-docker rmi ghcr.io/retaildevcrews/ngsa-app:beta
-
-# download rio
-#curl -sfL https://get.rio.io | sh -
-
 echo "on-create complete" >> ~/status

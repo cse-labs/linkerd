@@ -70,11 +70,11 @@ fn index() -> Html<&'static str> {
 }
 
 #[openapi]
-#[get("/words?<count>&<signed>")]
+#[get("/words?<count>&<sign>")]
 async fn words(
     header_map: RocketHttpHeaderMap<'_>,
     count: Option<u8>,
-    signed: bool,
+    sign: Option<bool>,
 ) -> Option<Json<Words>> {
     let cx = global::get_text_map_propagator(|propagator| {
         propagator.extract(&HeaderExtractor(header_map.0))
@@ -84,6 +84,11 @@ async fn words(
     let cnt = match count {
         Some(cnt) => cnt,
         None => 3,
+    };
+
+    let signed = match sign {
+        Some(signed) => signed,
+        None => false,
     };
 
     let mut client = PickWordsClient::new(WORDS_CHANNEL.get().unwrap().clone());

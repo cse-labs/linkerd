@@ -19,7 +19,7 @@ GET http://localhost:8080/api/v1.0/words?count=7 HTTP/1.1
 ###
 
 # pickle v1.0 words list for count and signed
-GET http://localhost:8080/api/v1.0/words?count=4&signed HTTP/1.1
+GET http://localhost:8080/api/v1.0/words?count=4&sign HTTP/1.1
 
 ###
 
