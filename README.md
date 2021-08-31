@@ -96,23 +96,49 @@ Clicking on `Send Request` should open a new panel in Visual Studio Code with th
 
 ![REST Client example response](./images/RESTClientResponse.png)
 
+Try all of the requests to see the different results.
+
 ## Ports
 
 Click on the `PORTS` tab in the lower panel. The Codespace has one port mapped to the Traefik ingress for the app.
 
 ![Ports](./images/Ports.png)
 
-Choose "Open in Browser" on the "Pickle (30088)" row. When your browser lands on the root page for the app, click the "Swagger docs" link to try out the API.
+Choose "Open in Browser" on the "Pickle (30088)" row. When your browser lands on the root page for the app, click the "Swagger docs" link to try out the API. Exercise the API with some example calls. Distributed trace sampling is set to 50% in the app, so make 2-3 calls with each end point to make sure there is data to visualize later.
 
 ## Linkerd, Grafana, and Jaeger views
 
-In this project, Linkerd is setup with its viz and jaeger extensions.
+In this project, Linkerd is setup with its viz and jaeger extensions. The easiest way to see the visualizations is to type `linkerd viz dashboard` in the `TERMINAL` window.
 
-## Quick Tour of the Project
+![linkerd viz dashbord](LinkerdViz.png)
+
+Follow the link in the last line of the output to see the main Linkerd dashboard.
+
+![Linkerd Dashboard](LinkerdDashboard.png)
+
+From here, you can explore the telemetry and visualizations baked into Linkerd and its exensions. Clicking on the "pickle" link at the bottom of the "HTTP Metrics" panel will show the information for the "pickle" deployments, as below.
+
+![Pickle namespace in Linkerd Dashboard](LinkerdNamespaceDashboard.png)
+
+Clicking on the logo links to the far right of any deployment will open the associated Grafana and Jaeger views.
+
+![Grafana Dashboard](Grafana.png)
+
+![Jaeger Dashboard](Jaeger.png)
+
+The sampling rate for distributed tracing is set to 50%, so you will see entries for only some of the calls you made to the service. Click on a trace to see the more detailed view.
+
+![Jaeger Trace View](JaegerTrace.png)
 
 ## Next Steps
 
-> [Makefile](./Makefile) is a good place to start exploring
+Click around the Linkderd dashboard and the Grafana and Jaeger views.
+
+> [Makefile](./Makefile) is a good place to start exploring the project
+
+## Quick Tour of the Project
+
+
 
 ## Jump Box
 
