@@ -4,7 +4,7 @@ This project is an inner loop Kubernetes development example, using K3D running 
 
 [License](https://img.shields.io/badge/license-MIT-green.svg)
 
-The opentelemetry-rust code in the app/rust/b3 crate is licensed under the
+The opentelemetry-rust code in the `app/rust/b3` package is licensed under the
 [Apache License 2.0](https://github.com/open-telemetry/opentelemetry-rust/blob/main/LICENSE),
 a permissive license whose main conditions require preservation of copyright and license notices.
 Contributors provide an express grant of patent rights. Licensed works, modifications, and larger
@@ -41,7 +41,7 @@ This project demonstrates several open source projects used in combination.
 - [Fluent Bit](https://fluentbit.io/) for log handling
 - [k9s](https://k9scli.io/) terminal UI for Kubernetes
 - [GitHub](https://github.com/) [Codespaces](https://github.com/features/codespaces)
-_ [GNU Make](https://www.gnu.org/software/make/)
+- [GNU Make](https://www.gnu.org/software/make/)
 
 ## A Note on Secret Handling
 
@@ -110,25 +110,25 @@ Choose "Open in Browser" on the "Pickle (30088)" row. When your browser lands on
 
 In this project, Linkerd is setup with its viz and jaeger extensions. The easiest way to see the visualizations is to type `linkerd viz dashboard` in the `TERMINAL` window.
 
-![linkerd viz dashbord](LinkerdViz.png)
+![linkerd viz dashbord](./images/LinkerdViz.png)
 
 Follow the link in the last line of the output to see the main Linkerd dashboard.
 
-![Linkerd Dashboard](LinkerdDashboard.png)
+![Linkerd Dashboard](./images/LinkerdDashboard.png)
 
 From here, you can explore the telemetry and visualizations baked into Linkerd and its exensions. Clicking on the "pickle" link at the bottom of the "HTTP Metrics" panel will show the information for the "pickle" deployments, as below.
 
-![Pickle namespace in Linkerd Dashboard](LinkerdNamespaceDashboard.png)
+![Pickle namespace in Linkerd Dashboard](./images/LinkerdNamespaceDashboard.png)
 
 Clicking on the logo links to the far right of any deployment will open the associated Grafana and Jaeger views.
 
-![Grafana Dashboard](Grafana.png)
+![Grafana Dashboard](./images/Grafana.png)
 
-![Jaeger Dashboard](Jaeger.png)
+![Jaeger Dashboard](./images/Jaeger.png)
 
 The sampling rate for distributed tracing is set to 50%, so you will see entries for only some of the calls you made to the service. Click on a trace to see the more detailed view.
 
-![Jaeger Trace View](JaegerTrace.png)
+![Jaeger Trace View](./images/JaegerTrace.png)
 
 ## Next Steps
 
@@ -138,7 +138,21 @@ Click around the Linkderd dashboard and the Grafana and Jaeger views.
 
 ## Quick Tour of the Project
 
+`[Makefile](.Makefile)` drives creating and setting up the cluster and building and deploying the services in the app. The deploy directory
+includes the configuratioin and installation assets for K3D, Linkerd, Traefik, and Fluent Bit. [instal_linkerd.sh](./deploy/linkerd/install_linkderd.sh)
+is a specific version of the Linkerd installer that comes from [https://run.linkerd.io/install](https://run.linkerd.io/install). The images cached by
+`make pull` and `make prime` correspond to the version of Linkerd installed by this file. [traefik_values.yaml](./deploy/traefik/traefik_values.yaml)
+is provided to the Traefik Helm chart to setup Traefik ingress with [b3](https://github.com/openzipkin/b3-propagation) trace initiation to the common
+Jaeger collector.
 
+The `app` directory includes the [Docker Compose](./app/docker-compose.yml) file to create all three service images from the Dockerfile's in the directory.
+The Dockerfiles build in a [rust-slim image](https://hub.docker.com/_/rust) with [musl](https://musl.libc.org/) to support static linking and running on
+[Alpine](https://hub.docker.com/_/alpine) images. The Dockerfiles are constructed to allow for caching of dependencies in image layers.
+
+The `rust` directory under `app` is the [Cargo](https://doc.rust-lang.org/cargo/) [workspace](https://doc.rust-lang.org/cargo/reference/workspaces.html) that includes the five Rust packages that make up the application. `b3` is a package of helper methods to support b3 span propagation for distributed
+tracing. `dill` is the package that builds a libary based on the grpc proto definition. `pickle` is the web front end for the application based on
+the Rocket web framework. It implements a simple rpc API over HTTP. `words` is a grpc service that returns lists of words. `signer` will add a
+timestamp and signature to a list of words.
 
 ## Jump Box
 
@@ -166,7 +180,22 @@ A `jump box` pod is created so that you can execute commands `in the cluster`
 
 ## Troubleshooting
 
+### ImagePullBackoff problems with Linkerd-related images
 
+Run `make pull` and then `make prime` or just run `make bootsrap` to start over. Either approach will pull down the required images
+and push them into the local cluster's image registry.
+
+### Signing service crashes on start
+
+The most likely reason for this is a missing signing key. Make sure you have an RSA PSS private key base64-encoded from DER format
+in a GitHub Codespace secret called `PICKLE_PRIVATE_KEY`. Run `devcontainer/post-start.sh` You can look at the logs to see what
+the issue is.
+
+### Not seeing distributed traces in Jaeger
+
+In the `deploy\traefik\traefik_values.yaml` file Traefik is configured for a probabilistic sample rate of .5. Invoke the app more times via
+the `curl.http` file or the swagger web UI or change the sample rate to record a higher number of requests, start over with `make all` or `make allp`,
+and then exercise the app again to create new traces.
 
 ## Trademarks
 

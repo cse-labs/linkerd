@@ -12,8 +12,10 @@ help :
 	@echo "   make deploy           - deploy the app to the cluster"
 	@echo "   make undeploy         - delete the app from the cluster"
 	@echo "   make jumpbox          - deploy a 'jumpbox' pod"
-	@echo "   make pull             - pull linkerd images, because the k3s cluster fails to pull them"
+	@echo "   make pull             - pull linkerd images, because the k3s cluster fails to pull them sometimes"
 	@echo "   make prime            - import linkerd images into the cluster"
+	@echo "   make bootstrap.       - bootstrap creates and configures the cluster with image pull and import help"
+	@echo "   make allp             - all with image import into the cluster at the right step"
 
 all : delete create setup check app deploy
 
