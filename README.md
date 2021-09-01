@@ -1,6 +1,6 @@
 # Kubernetes, Linkerd, Rust, and grpc Codespace
 
-This project is an inner loop Kubernetes development example, using K3D running in [GitHub Codespaces](https://github.com/features/codespaces), created from [Kubernetes Dev Cluster on Codespaces Template](https://github.com/retaildevcrews/kind-k3d-codespaces-template).
+This project is an inner loop Kubernetes development example, using K3D running in [GitHub Codespaces](https://github.com/features/codespaces), created from [Kubernetes Dev Cluster on Codespaces Template](https://github.com/cse-labs/kubernetes-in-codespaces).
 
 [License](https://img.shields.io/badge/license-MIT-green.svg)
 

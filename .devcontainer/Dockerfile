@@ -1,5 +1,4 @@
-# Note: You can use any Debian/Ubuntu base image
-FROM ghcr.io/retaildevcrews/kind-rust:latest
+FROM ghcr.io/cse-labs/k3d-rust:latest
 
 # user args
 # some base images require specific values
