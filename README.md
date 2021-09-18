@@ -1,8 +1,8 @@
-# Kubernetes, Linkerd, Rust, and grpc Codespace
+# Kubernetes, Linkerd, Rust, and grpc in GitHub Codespaces
 
-This project is an inner loop Kubernetes development example, using K3D running in [GitHub Codespaces](https://github.com/features/codespaces), created from [Kubernetes Dev Cluster on Codespaces Template](https://github.com/cse-labs/kubernetes-in-codespaces).
+This project is an inner-loop Kubernetes development example, using k3d running in [GitHub Codespaces](https://github.com/features/codespaces), created from [Kubernetes Dev Cluster on Codespaces Template](https://github.com/cse-labs/kubernetes-in-codespaces).
 
-[License](https://img.shields.io/badge/license-MIT-green.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 The opentelemetry-rust code in the `app/rust/b3` package is licensed under the
 [Apache License 2.0](https://github.com/open-telemetry/opentelemetry-rust/blob/main/LICENSE),
@@ -12,7 +12,7 @@ works may be distributed under different terms and without source code
 
 ## Overview
 
-This project sets up a Kubernetes developer cluster using K3D with Linkerd in a GitHub Codespace or local Dev Container.
+This project sets up a Kubernetes developer cluster using k3d with Linkerd in a GitHub Codespace or local Dev Container.
 
 We use this for inner-loop Kubernetes development. Note that it is not appropriate for production use (but is a great Developer Experience).
 
@@ -23,7 +23,7 @@ We use this for inner-loop Kubernetes development. Note that it is not appropria
 This project demonstrates several open source projects used in combination.
 
 - [K3s](https://k3s.io/): Lightweight [Kubernetes](https://kubernetes.io/)
-- [K3D](https://k3d.io/): K3s in Docker
+- [k3d](https://k3d.io/): K3s in Docker
 - [Docker](https://www.docker.com/), including [Docker Compose](https://docs.docker.com/compose/)
 - [Linkerd](https://linkerd.io/) service mesh, configured with
   - [Prometheus](https://prometheus.io/) for monitoring
@@ -139,7 +139,7 @@ Click around the Linkderd dashboard and the Grafana and Jaeger views.
 ## Quick Tour of the Project
 
 `[Makefile](.Makefile)` drives creating and setting up the cluster and building and deploying the services in the app. The deploy directory
-includes the configuratioin and installation assets for K3D, Linkerd, Traefik, and Fluent Bit. [instal_linkerd.sh](./deploy/linkerd/install_linkderd.sh)
+includes the configuratioin and installation assets for k3d, Linkerd, Traefik, and Fluent Bit. [instal_linkerd.sh](./deploy/linkerd/install_linkderd.sh)
 is a specific version of the Linkerd installer that comes from [https://run.linkerd.io/install](https://run.linkerd.io/install). The images cached by
 `make pull` and `make prime` correspond to the version of Linkerd installed by this file. [traefik_values.yaml](./deploy/traefik/traefik_values.yaml)
 is provided to the Traefik Helm chart to setup Traefik ingress with [b3](https://github.com/openzipkin/b3-propagation) trace initiation to the common
